@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Button,
   ImageBackground,
   Image,
   Animated,
@@ -155,7 +154,8 @@ function PomodoroTimer({ navigation }) {
         </View>
         {/* Wrapper for timer display */}
         <View style={[styles.pomodoroTimerWrapper, {backgroundColor: onBreak ? "red" : "#536878"}]}>
-          <Text style={styles.pomodoroCountdownText}>{minute}:{second}</Text>
+           {/* https://stackoverflow.com/questions/69909811/show-timer-in-2-digits-instead-of-one-react-timer-hook */} 
+          <Text style={styles.pomodoroCountdownText}>{minute}:{second.toString().padStart(2, "0")}</Text>
           <Text style={styles.pomodoroStatusText}>{onBreak ? "Break Time" : "Working Time"}</Text>
           <Text style={styles.pomodoroBreakText}>Breaks Remaining: {breakRemaining}</Text>
         </View>
@@ -233,6 +233,7 @@ function WelcomePage({ navigation }) {
 
   // Check if user exist and authenticated
   // https://supabase.com/docs/reference/javascript/auth-getuser
+  // aud is response for authenticated users on supabase docs
   useEffect(() => {
     const getSession = async () => {
       const {data:{user:{aud}}} = await supabase.auth.getUser()
@@ -278,7 +279,7 @@ function WelcomePage({ navigation }) {
       <View style={styles.yourTimeLogo}>
         {/* YourTime logo fade in */}
         <Animated.View style={{opacity: fadeAnim}}>
-          <Image source={require("./assets/image/logo.png")} style={styles.yourTimeImage}/>
+          <Image testID={"ytLogo"}  source={require("./assets/image/logo.png")} style={styles.yourTimeImage}/>
         </Animated.View>
       </View>
       {/* Sign in and register buttons */}
@@ -377,6 +378,7 @@ function RegistrationPage({ navigation }) {
       <Text style={styles.mainTitleText}>Register</Text>
       <View style={styles.emailPasswordInputWrapper}>
         <TextInput
+          testID="emailAddress"
           style={styles.taskInput}
           value={email}
           onChangeText={setEmail}
@@ -384,6 +386,7 @@ function RegistrationPage({ navigation }) {
           autoCapitalize={'none'}
         />
         <TextInput
+          testID="password"
           style={styles.taskInput}
           value={password}
           onChangeText={setPassword}
@@ -391,12 +394,12 @@ function RegistrationPage({ navigation }) {
           secureTextEntry
           autoCapitalize={'none'}
         />
-         <TouchableOpacity
-            style={styles.signUpButton}
-            onPress={signUpSupabase}>
-            <Text style={styles.signInLargeText}>Register Now</Text>
-            <Text style={styles.signInSmallText}>if you are new to YourTime</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.signUpButton}
+          onPress={signUpSupabase}>
+          <Text style={styles.signInLargeText}>Register Now</Text>
+          <Text style={styles.signInSmallText}>if you are new to YourTime</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -443,6 +446,7 @@ function SignInPage({ navigation }) {
       <View style={styles.emailPasswordInputWrapper}>
         {/* Email text input */}
         <TextInput
+          testID="emailAddress"
           style={styles.taskInput}     
           value={email}
           onChangeText={setEmail}
@@ -450,6 +454,7 @@ function SignInPage({ navigation }) {
         />
         {/* Password text input */}
         <TextInput
+          testID="password"
           style={styles.taskInput}
           value={password}
           onChangeText={setPassword}
@@ -461,7 +466,7 @@ function SignInPage({ navigation }) {
           <Text style={styles.signInText}>Sign In</Text>
         </TouchableOpacity>
         {/* Registration Page button */}
-        <TouchableOpacity style={styles.signUpButton} onPress={() => navigation.navigate("Register")}>
+        <TouchableOpacity testID="signUpButton" style={styles.signUpButton} onPress={() => navigation.navigate("Register")}>
           <Text style={styles.signInText}>Sign Up here if you haven't!</Text>
         </TouchableOpacity>
       </View>
@@ -1684,9 +1689,12 @@ function MyDay({ navigation }) {
             onChangeText={setNewMyDayTaskTitle}
             placeholder="Add a task for today"
           />
-          <View style={styles.myDayAddTaskButton}>
-            <Button title="+" onPress={addMyDayTask} />
-          </View>
+          <TouchableOpacity
+            style={styles.myDayAddTaskButton}
+            onPress={addMyDayTask}
+          >
+            <Text style={styles.pomodoroButtonText}>+</Text>
+          </TouchableOpacity>
         </View>
       </ImageBackground>
       <BottomNavigation navigation={navigation} />
@@ -1713,8 +1721,8 @@ export default function App() {
   );
 }
 
-// Exports for unit testing
-export {PomodoroTimer, BottomNavigation};
+// Export for unit testing
+export {PomodoroTimer, BottomNavigation, WelcomePage, RegistrationPage, SignInPage};
 
 const styles = StyleSheet.create({
   container: {
