@@ -493,7 +493,8 @@ function AllProjectsPage({ navigation }) {
       const {data, error: projectError} = await supabase
         .from("projects")
         .select()
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .order("projectSequence");
 
       if (projectError) {
         alert(projectError.message);
@@ -577,6 +578,28 @@ function AllProjectsPage({ navigation }) {
       </View>
     );
   };
+
+  // Save the project data after a project has been dragged and dropped. Use the updated data to 
+  // update the sequence on Supabase projectSequence column
+  const DragAndDrop = async ({data}) => {
+    setProject(data);
+    try {
+      const {error} = await supabase
+      if (error) {
+        alert(error.message);
+      } else {
+        // Update the projectSequence column with current sequence when a project is dragged and dropped
+        for (i = 0; i < data.length; i++) {
+          await supabase
+            .from("projects")
+            .update({projectSequence:i}) 
+            .eq("projectID", data[i].projectID);
+        }
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  };  
 
   // Show all projects
   const renderItem = ({item, drag, isActive}) => {
@@ -666,7 +689,7 @@ function AllProjectsPage({ navigation }) {
           <DraggableFlatList
             // Display relevant list of projects using projectID
             data={project}
-            onDragEnd={({data}) => setProject(data)}
+            onDragEnd={DragAndDrop}
             keyExtractor={(item) => item.projectID}
             renderItem={renderItem}
             // Remove spacing between rows
@@ -712,8 +735,9 @@ function TaskListPage({ route, navigation }) {
         .from("tasks")
         .select()
         .eq("user_id", user.id)
-        .eq("projectID", projectID);
-
+        .eq("projectID", projectID)
+        .order("taskSequence");
+      
       if (tasksError) {
         alert(tasksError.message);
       } else {
@@ -828,6 +852,28 @@ function TaskListPage({ route, navigation }) {
     );
   };
 
+  // Saves the task data after a task has been dragged and dropped. Use the updated data to 
+  // update the sequence on Supabase taskSequence column
+  const DragAndDrop = async ({data}) => {
+    setTasks(data);
+    try {
+      const {error} = await supabase
+      if (error) {
+        alert(error.message);
+      } else {
+        // Update the taskSequence column with current sequence when a task is dragged and dropped
+        for (i = 0; i < data.length; i++) {
+          await supabase
+            .from("tasks")
+            .update({taskSequence:i}) 
+            .eq("taskID", data[i].taskID);
+        }
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  };  
+
   // Show all tasks
   const renderItem = ({item, drag, isActive}) => {
     {/* Swipe from right to delete a project using ReanimatedSwipable */}
@@ -876,7 +922,7 @@ function TaskListPage({ route, navigation }) {
           <DraggableFlatList
             // Display relevant list of tasks using taskID
             data={tasks}
-            onDragEnd={({data}) => setTasks(data)}
+            onDragEnd={DragAndDrop}
             keyExtractor={(item) => item.taskID}
             renderItem={renderItem}
           />
@@ -975,34 +1021,77 @@ function AllTasks({ navigation }) {
   const [taskTitleNotes, setTaskTitleNotes] = useState("");
   // State of task being edited
   const [editTask, setEditTask] = useState(null);
-
+  // Show or hide the sort modal
+  const [sortModalVisible, setSortModalVisible] = useState(false);
+  // Sort tasks - urgent 
+  const [viewUrgent, setViewUrgent] = useState(false);
+  // Sort tasks - important
+  const [viewImportant, setViewImportant] = useState(false);
+  // Sort tasks - urgent and important
+  const [viewUrgentImportant, setViewUrgentImportant] = useState(false);
+  
   // Fetch all tasks from Supabase for current user
   // https://supabase.com/docs/reference/javascript/select
   const getAllTasks = async () => {
     try {
       // Get the user details in order to obtain the user id
       const {data:{user}} = await supabase.auth.getUser();
-
-      // Add the following line when userId above is removed
-      // const {data: {user}, error: userError} = await supabase.auth.getUser();
-      // Change the userId back to user.id at eq
-
-      // Fetch all tasks from tasks table based on userId from Supabase
-      const {data, error: allTasksError} = await supabase
-        .from("tasks")
-        .select()
-        .eq("user_id", user.id);
-
+      // Sort urgent and important tasks
+      if (viewUrgentImportant) {
+        const {data, error: allTasksError} = await supabase
+          .from("tasks")
+          .select()
+          .eq("user_id", user.id)
+          .order("isUrgent", {ascending: false})
+          .order("isImportant", {ascending: false});        
+        if (allTasksError) {
+          alert(allTasksError.message);
+        } else {
+        // Store task data from Supabase
+        setTasks(data);
+        }
+      // Sort urgent tasks
+      } else if (viewUrgent) {
+        const {data, error: allTasksError} = await supabase
+          .from("tasks")
+          .select()
+          .eq("user_id", user.id)
+          .order("isUrgent", {ascending: false});
+        if (allTasksError) {
+          alert(allTasksError.message);
+        } else {
+        // Store task data from Supabase
+        setTasks(data);
+        }
+      // Sort important tasks
+      } else if (viewImportant) {
+        const {data, error: allTasksError} = await supabase
+          .from("tasks")
+          .select()
+          .eq("user_id", user.id)
+          .order("isImportant", {ascending: false});
+        if (allTasksError) {
+          alert(allTasksError.message);
+        } else {
+          // Store task data from Supabase
+          setTasks(data);
+        }
+      // No sorting
+      } else {
+        const {data, error: allTasksError} = await supabase
+          .from("tasks")
+          .select()
+          .eq("user_id", user.id)
       if (allTasksError) {
         alert(allTasksError.message);
       } else {
         // Store task data from Supabase
         setTasks(data);
-      }
-    } catch (error) {
+      }}
+      } catch (error) {
       alert(error.message);
-    }
-  };
+      }
+    };
   
   useEffect(() => {
     getAllTasks();
@@ -1013,6 +1102,10 @@ function AllTasks({ navigation }) {
   // https://reactnative.dev/docs/modal
   const toggleModal = () => {
     setModalVisible(!modalVisible);
+  };
+
+  const toggleSortModal = () => {
+    setSortModalVisible(!sortModalVisible);
   };
 
   // Open the task modal when a task is pressed and display data for editing
@@ -1165,7 +1258,15 @@ function AllTasks({ navigation }) {
       <GestureHandlerRootView>
         <View style={styles.container}>
           <Text style={styles.mainTitleText}>All Tasks</Text>
-          <View style={styles.addTaskProjectModalWrapper}>
+          <View style={styles.sortProjectModalWrapper}>
+            {/* Sort modal button */}
+            <TouchableOpacity
+              onPress={() => setSortModalVisible(true)}
+              style={styles.taskRowMargin}
+            >
+              <Text style={styles.topLeftButton}>Sort</Text>
+            </TouchableOpacity>
+            {/* Add task modal button */}
             <TouchableOpacity
               onPress={() => setModalVisible(true)}
               style={styles.taskRowMargin}
@@ -1182,7 +1283,7 @@ function AllTasks({ navigation }) {
             keyExtractor={(item) => item.taskID}
             renderItem={renderItem}
           />
-          {/* Create a modal to add projects */}
+          {/* Add tasks modal */}
           {/* The following code was learnt and implemented from: */}
           {/* https://reactnative.dev/docs/modal */}
           <Modal
@@ -1226,7 +1327,7 @@ function AllTasks({ navigation }) {
                       onValueChange={setIsUrgent}
                       color={isUrgent ? "blue" : undefined}
                     />
-                    <Text style={styles.checkboxLabel}>Mark as Urgent</Text>
+                    <Text style={styles.checkboxLabel}>Urgent Task</Text>
                   </View>
                   {/* Important check box */}
                   <View style={styles.checkBoxModal}>
@@ -1235,9 +1336,7 @@ function AllTasks({ navigation }) {
                       onValueChange={setIsImportant}
                       color={isImportant ? "blue" : undefined}
                     />
-                    <Text style={styles.checkboxLabel}>
-                      Mark as Important
-                    </Text>
+                    <Text style={styles.checkboxLabel}>Important Task</Text>
                   </View>
                   {/* Add and cancel buttons */}
                   <View style={styles.taskModalButtonWrapper}>
@@ -1246,6 +1345,63 @@ function AllTasks({ navigation }) {
                     </TouchableOpacity>
                     {/* Registration Page button */}
                     <TouchableOpacity style={styles.addButton} onPress={saveTask}>
+                      <Text style={styles.signInText}>Add</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </KeyboardAvoidingView>
+            </View>
+          </Modal>
+          {/* Sort modal */}
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={sortModalVisible}
+            onRequestClose={toggleSortModal}
+          >
+            <View style={styles.taskModalWrapper}>
+              {/* Prevent the keyboard from blocking the view */}
+              {/* https://reactnative.dev/docs/keyboardavoidingview */}
+              <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+              >
+                <View style={styles.taskModalBackground}>
+                  <Text style={styles.taskListModalTitle}>Sort Tasks</Text>
+                  {/* Urgent check box */}
+                  {/* https://docs.expo.dev/versions/latest/sdk/checkbox/ */}  
+                  <View style={styles.checkBoxModal}>
+                    <Checkbox
+                      value={viewUrgent}
+                      onValueChange={setViewUrgent}
+                      color={viewUrgent ? "blue" : undefined}
+                    />
+                    <Text style={styles.checkboxLabel}>Urgent Tasks</Text>
+                  </View>
+                  {/* Important check box */}
+                  <View style={styles.checkBoxModal}>
+                    <Checkbox
+                      value={viewImportant}
+                      onValueChange={setViewImportant}
+                      color={viewImportant ? "blue" : undefined}
+                    />
+                    <Text style={styles.checkboxLabel}>Important Tasks</Text>
+                  </View>
+                  {/* Urgent And Important check box */}
+                  <View style={styles.checkBoxModal}>
+                    <Checkbox
+                      value={viewUrgentImportant}
+                      onValueChange={setViewUrgentImportant}
+                      color={viewUrgentImportant ? "blue" : undefined}
+                    />
+                    <Text style={styles.checkboxLabel}>Urgent And Important Tasks</Text>
+                  </View>
+                  {/* Add and cancel buttons */}
+                  <View style={styles.taskModalButtonWrapper}>
+                    <TouchableOpacity style={styles.cancelButton} onPress={toggleSortModal}>
+                      <Text style={styles.signInText}>Cancel</Text>
+                    </TouchableOpacity>
+                    {/* Registration Page button */}
+                    <TouchableOpacity style={styles.addButton} onPress={getAllTasks}>
                       <Text style={styles.signInText}>Add</Text>
                     </TouchableOpacity>
                   </View>
@@ -1909,6 +2065,11 @@ const styles = StyleSheet.create({
     textAlign: "right",
     marginRight: 10,
   },
+  // Sort button
+  topLeftButton: {
+    textAlign: "left",
+    marginLeft: 10,
+  },
   // Vertical margin above and below rows of tasks/projects
   taskRowMargin: {
     marginVertical: 5,
@@ -1917,6 +2078,12 @@ const styles = StyleSheet.create({
   addTaskProjectModalWrapper: {
     textAlign: "right",
     marginTop: 5,
+  },
+  // Add task/ sort button wrapper
+  sortProjectModalWrapper: {
+    justifyContent: "space-between",
+    marginTop: 5,
+    flexDirection: "row", 
   },
   // Project page modal 
   projectModal: {
