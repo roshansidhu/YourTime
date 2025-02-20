@@ -33,9 +33,9 @@ describe("Pomodoro", () => {
     expect(getByText("Pomodoro Timer")).toBeTruthy();
 
     // Check that the text inputs is displayed  
-    expect(getByTestId("selectedDurationTest")).toBeTruthy();
-    expect(getByTestId("breakDurationTest")).toBeTruthy();
-    expect(getByTestId("breakRemainingTest")).toBeTruthy();
+    expect(getByTestId("workingSlider")).toBeTruthy();
+    expect(getByTestId("breakSlider")).toBeTruthy();
+    expect(getByTestId("breakRemainingSlider")).toBeTruthy();
 
     // Check that the start and stop button is displayed 
     expect(getByText("Start")).toBeTruthy();
@@ -43,42 +43,42 @@ describe("Pomodoro", () => {
     expect(getByText("Reset")).toBeTruthy();
   });
 
-  // Checks the text input function
-  it("Text inputs on Pomodoro timer page works correctly.", () => {
+  // Checks the sliders
+  // https://stackoverflow.com/questions/58856094/testing-a-material-ui-slider-with-testing-library-react
+  it("Sliders on Pomodoro timer page works correctly.", () => {
     const {getByTestId} = render(<PomodoroTimer navigation={mockNavigation}/>);
 
-    // Check the working time text input
-    const workingTextInput = getByTestId("selectedDurationTest");
-    fireEvent.changeText(workingTextInput, "3");
-    expect(workingTextInput.props.value).toBe("3");
+    // Check the working time slider
+    const workingSlider = getByTestId("workingSlider");
+    fireEvent(workingSlider, "onSlidingComplete", 2); 
+    expect(workingSlider.props.value).toBe(2);
 
-    // Check the break time text input
-    const breakTextInput = getByTestId("breakDurationTest");
-    fireEvent.changeText(breakTextInput, "2");
-    expect(breakTextInput.props.value).toBe("2");
-
-    // Check the number of breaks remaining text input
-    const breakRemainingTextInput = getByTestId("breakRemainingTest");
-    fireEvent.changeText(breakRemainingTextInput, "2");
-    expect(breakRemainingTextInput.props.value).toBe("2");
+    // Check the break time slider
+    const breakSlider = getByTestId("breakSlider");
+    fireEvent(breakSlider, "onSlidingComplete", 1); 
+    expect(breakSlider.props.value).toBe(1);
+    
+    // Check the break remaining slider
+    const breakRemainingSlider = getByTestId("breakRemainingSlider");
+    fireEvent(breakRemainingSlider, "onSlidingComplete", 2); 
+    expect(breakRemainingSlider.props.value).toBe(2);
   });
 
-
-  test("Test Pomodoro timer operation - countdown, breaks remaining, work-break mode", async () => {
+  it("Test Pomodoro timer operation - countdown, breaks remaining, work-break mode", async () => {
     const {getByText, getByTestId, findByText} = render(<PomodoroTimer navigation={mockNavigation}/>);
 
     const startButton = getByText("Start");
     const stopButton = getByText("Stop");
     const resetButton = getByText("Reset");
 
-    const workingTextInput = getByTestId("selectedDurationTest");
-    const breakTextInput = getByTestId("breakDurationTest");
-    const breakRemainingTextInput = getByTestId("breakRemainingTest");
+    const workingSlider = getByTestId("workingSlider");
+    const breakSlider = getByTestId("breakSlider");
+    const breakRemainingSlider = getByTestId("breakRemainingSlider");
 
-    // Testing inputs: 2 minutes of work, 1 minute of break, 2 breaks
-    fireEvent.changeText(workingTextInput, "2");
-    fireEvent.changeText(breakTextInput, "1");
-    fireEvent.changeText(breakRemainingTextInput, "2");
+    // Testing sliders: 2 minutes of work, 1 minute of break, 2 breaks
+    fireEvent(workingSlider, "onSlidingComplete", 2); 
+    fireEvent(breakSlider, "onSlidingComplete", 1); 
+    fireEvent(breakRemainingSlider, "onSlidingComplete", 2); 
 
     // Start button pressed
     fireEvent.press(startButton);
@@ -109,13 +109,13 @@ describe("Pomodoro", () => {
     expect(getByText("0:01")).toBeTruthy();
 
     // Check that working time is still being displayed
-    await findByText("Working Time"); 
-    expect(getByText("Working Time")).toBeTruthy();  
+    await findByText("Time to Work"); 
+    expect(getByText("Time to Work")).toBeTruthy();  
 
     // Check that display changes from working time to break time when countdown is 0:00
     await act(async () => {jest.advanceTimersByTime(1000)});
-    await findByText("Break Time"); 
-    expect(getByText("Break Time")).toBeTruthy();  
+    await findByText("Take a Break"); 
+    expect(getByText("Take a Break")).toBeTruthy();  
 
     // Check the countdown till 0:01 remaining
     for (i=0; i< 59; i++) {
@@ -125,13 +125,13 @@ describe("Pomodoro", () => {
       console.log(countdownRemaining2.props.children);
     }
     // Check that break time is still being displayed
-    await findByText("Break Time"); 
-    expect(getByText("Break Time")).toBeTruthy();  
+    await findByText("Take a Break"); 
+    expect(getByText("Take a Break")).toBeTruthy();  
 
     // Check that display changes from break time to working time when countdown is 0:00
     await act(async () => {jest.advanceTimersByTime(1000)});
-    await findByText("Working Time"); 
-    expect(getByText("Working Time")).toBeTruthy();  
+    await findByText("Time to Work"); 
+    expect(getByText("Time to Work")).toBeTruthy();  
 
     // Check the last 2 minutes of working time
     for (i=0; i< 119; i++) {
@@ -142,59 +142,58 @@ describe("Pomodoro", () => {
     }
 
     // Check that working time is still being displayed
-    await findByText("Working Time"); 
-    expect(getByText("Working Time")).toBeTruthy();  
+    await findByText("Time to Work"); 
+    expect(getByText("Time to Work")).toBeTruthy();  
 
     // Check that display changes from working time to break time when the countdown is 0:00
     await act(async () => {jest.advanceTimersByTime(1000)});
-    await findByText("Break Time"); 
-    expect(getByText("Break Time")).toBeTruthy();  
+    await findByText("Take a Break"); 
+    expect(getByText("Take a Break")).toBeTruthy();   
+  });
+
+  it("Test Pomodoro timer buttons", async () => {
+    const {getByText, getByTestId, findByText} = render(<PomodoroTimer navigation={mockNavigation}/>);
+  
+    const startButton = getByText("Start");
+    const stopButton = getByText("Stop");
+    const resetButton = getByText("Reset");
+  
+    const workingSlider = getByTestId("workingSlider");
+    const breakSlider = getByTestId("breakSlider");
+    const breakRemainingSlider = getByTestId("breakRemainingSlider");
+  
+    // Testing slider value: 2 minutes of work, 1 minute of break, 2 breaks
+      fireEvent(workingSlider, "onSlidingComplete", 2); 
+      fireEvent(breakSlider, "onSlidingComplete", 1); 
+      fireEvent(breakRemainingSlider, "onSlidingComplete", 2); 
+  
+    // Start button pressed
+    fireEvent.press(startButton);
+  
+    // Countdown display the correct time keyed in the text input
+    // https://stackoverflow.com/questions/58976251/checking-text-appears-inside-an-element-using-react-testing-library
+    expect(getByText("2:00")).toBeTruthy();
+  
+    // Check the countdown after 1 second
+    // https://jestjs.io/docs/timer-mocks
+    // https://callstack.github.io/react-native-testing-library/docs/advanced/understanding-act
+    await act(async () => {jest.advanceTimersByTime(1000)});
+    await findByText("1:59"); 
+    expect(getByText("1:59")).toBeTruthy();
+    
+    // Check the stop button
+    fireEvent.press(stopButton);
+    // Check the time after 1 second. Timer does not run
+    await act(async () => {jest.advanceTimersByTime(1000)});
+    await findByText("2:00"); 
+  
+    // Check the reset button
+    fireEvent.press(resetButton);
+    // Check the time after 1 second. Timer not running
+    await act(async () => {jest.advanceTimersByTime(1000)});
+    await findByText("2:00"); 
   });
 });
-
-test("Test Pomodoro timer buttons", async () => {
-  const {getByText, getByTestId, findByText} = render(<PomodoroTimer navigation={mockNavigation}/>);
-
-  const startButton = getByText("Start");
-  const stopButton = getByText("Stop");
-  const resetButton = getByText("Reset");
-
-  const workingTextInput = getByTestId("selectedDurationTest");
-  const breakTextInput = getByTestId("breakDurationTest");
-  const breakRemainingTextInput = getByTestId("breakRemainingTest");
-
-  // Testing inputs: 2 minutes of work, 1 minute of break, 2 breaks
-  fireEvent.changeText(workingTextInput, "2");
-  fireEvent.changeText(breakTextInput, "1");
-  fireEvent.changeText(breakRemainingTextInput, "2");
-
-  // Start button pressed
-  fireEvent.press(startButton);
-
-  // Countdown display the correct time keyed in the text input
-  // https://stackoverflow.com/questions/58976251/checking-text-appears-inside-an-element-using-react-testing-library
-  expect(getByText("2:00")).toBeTruthy();
-
-  // Check the countdown after 1 second
-  // https://jestjs.io/docs/timer-mocks
-  // https://callstack.github.io/react-native-testing-library/docs/advanced/understanding-act
-  await act(async () => {jest.advanceTimersByTime(1000)});
-  await findByText("1:59"); 
-  expect(getByText("1:59")).toBeTruthy();
-  
-  // Check the stop button
-  fireEvent.press(stopButton);
-  // Check the time after 1 second. Timer does not run
-  await act(async () => {jest.advanceTimersByTime(1000)});
-  await findByText("2:00"); 
-
-  // Check the reset button
-  fireEvent.press(resetButton);
-  // Check the time after 1 second. Timer not running
-  await act(async () => {jest.advanceTimersByTime(1000)});
-  await findByText("2:00"); 
-});
-
 
 // Test the bottom nav bar for correct image and text
 describe("BottomNavigation", () => {

@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
+  Alert
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import DraggableFlatList from "react-native-draggable-flatlist";
@@ -23,6 +24,8 @@ import ReanimatedSwipeable from "react-native-gesture-handler/ReanimatedSwipeabl
 import { createClient } from "@supabase/supabase-js";
 import Checkbox from "expo-checkbox";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Slider from '@react-native-community/slider';
+
 
 // Supabase account 
 // https://supabase.com/docs/guides/auth/quickstarts/react-native
@@ -107,7 +110,7 @@ function PomodoroTimer({ navigation }) {
         } else {
           setSecond(prevSecond => prevSecond - 1);
         }
-      }, 1000);
+      }, 10);
     } else if (timerRunning && minute === 0 && second === 0) {
       // Timer has run out with remaining breaks
       if (breakRemaining > 0) {
@@ -128,6 +131,16 @@ function PomodoroTimer({ navigation }) {
       } else {
         // No more breaks remaining
         setTimerRunning(false);
+        // https://reactnative.dev/docs/alert
+        Alert.alert("Congratulations!", "You've reached your target.", [
+          {
+            text: "OK",
+          },
+          { 
+            text: "Start Over",
+            onPress: () => resetTimer()
+          }
+        ]);
       }
     }
     // From freecodecamp: Clear the timeout when not used
@@ -156,47 +169,58 @@ function PomodoroTimer({ navigation }) {
         <View style={[styles.pomodoroTimerWrapper, {backgroundColor: onBreak ? "red" : "#536878"}]}>
            {/* https://stackoverflow.com/questions/69909811/show-timer-in-2-digits-instead-of-one-react-timer-hook */} 
           <Text style={styles.pomodoroCountdownText}>{minute}:{second.toString().padStart(2, "0")}</Text>
-          <Text style={styles.pomodoroStatusText}>{onBreak ? "Break Time" : "Working Time"}</Text>
+          <Text style={styles.pomodoroStatusText}>{onBreak ? "Take a Break" : "Time to Work"}</Text>
           <Text style={styles.pomodoroBreakText}>Breaks Remaining: {breakRemaining}</Text>
         </View>
 
-        {/* Text inputs */}
-
-        {/* Horizontal wrapper for working time */}
-        <View style={styles.pomodoroInputRowWrapper}>
-          <Text style={styles.pomodoroInputLineText}>Working Time:</Text>
-          <TextInput
-            style={styles.pomodoroTextInput}
+        {/* Working time slider */}
+        <View style={styles.pomodoroSlider}>
+          <Slider
+            style={{width: 200, height: 40}}
+            minimumValue={1}
+            maximumValue={30}
+            minimumTrackTintColor="#000000"
+            maximumTrackTintColor="#777777"
             value={selectedDuration}
-            onChangeText={(value) => setSelectedDuration(value)}
-            placeholder="Minutes"
-            testID="selectedDurationTest"
+            step={1}
+            onSlidingStart={(value) => setSelectedDuration(value)}
+            onSlidingComplete={(value) => setSelectedDuration(value)}
+            testID="workingSlider"
           />
-        </View>
-
-        {/* Horizontal wrapper for break time */}
-        <View style={styles.pomodoroInputRowWrapper}>
-          <Text style={styles.pomodoroInputLineText}>Break Time:</Text>
-          <TextInput
-            style={styles.pomodoroTextInput}
+        </View> 
+        <Text style={styles.pomodoroSliderText}>Working Time</Text>
+        {/* Break time slider */}
+        <View style={styles.pomodoroSlider}>
+          <Slider
+            style={{width: 200, height: 40}}
+            minimumValue={1}
+            maximumValue={5}
+            minimumTrackTintColor="#000000"
+            maximumTrackTintColor="#777777"
             value={breakDuration}
-            onChangeText={(value) => setBreakDuration(value)}
-            placeholder="Minutes"
-            testID="breakDurationTest"
+            step={1}
+            onSlidingStart={(value) => setBreakDuration(value)}
+            onSlidingComplete={(value) => setBreakDuration(value)}
+            testID="breakSlider"
           />
-        </View>
-
-        {/* Horizontal wrapper for number of breaks */}
-        <View style={styles.pomodoroInputRowWrapper}>
-          <Text style={styles.pomodoroInputLineText}>Breaks Remaining:</Text>
-          <TextInput
-            style={styles.pomodoroTextInput}
-            placeholder="Breaks"
+        </View> 
+        <Text style={styles.pomodoroSliderText}>Break Time</Text>
+        {/* Break remaining slider */}
+        <View style={styles.pomodoroSlider}>
+          <Slider
+            style={{width: 200, height: 40}}
+            minimumValue={1}
+            maximumValue={5}
+            minimumTrackTintColor="#000000"
+            maximumTrackTintColor="#777777"
             value={breakRemaining}
-            onChangeText={(value) => setBreakRemaining(value)}
-            testID="breakRemainingTest"
+            step={1}
+            onSlidingStart={(value) => setBreakRemaining(value)}
+            onSlidingComplete={(value) => setBreakRemaining(value)}
+            testID="breakRemainingSlider"
           />
-        </View>
+        </View> 
+        <Text style={styles.pomodoroSliderText}>Breaks Remaining</Text>
 
         {/* Wrapper for breaks remaining and countdown timer */}
         <View style={styles.pomodoroCountdownButtonWrapper}>
@@ -274,7 +298,6 @@ function WelcomePage({ navigation }) {
           <Text style={styles.infoButtonText}>i</Text>
         </TouchableOpacity>
       </Animated.View>
-
 
       <View style={styles.yourTimeLogo}>
         {/* YourTime logo fade in */}
@@ -499,13 +522,18 @@ function AllProjectsPage({ navigation }) {
       if (projectError) {
         alert(projectError.message);
       } else {
-        // Store project data from Supabase
-        setProject(data); 
+        // Store project data from Supabase or show a placeholder text when no projects exist
+        if(data.length > 0) {
+          setProject(data);
+        } else if (data.length === 0) {
+          setProject([{"projectTitle": "Enter your first project"}]);
+        }
       }
     } catch (error) {
       alert(error.message);
     }
   };
+
 
   useEffect(() => {
     getProjectsSupabase();
@@ -589,7 +617,7 @@ function AllProjectsPage({ navigation }) {
         alert(error.message);
       } else {
         // Update the projectSequence column with current sequence when a project is dragged and dropped
-        for (i = 0; i < data.length; i++) {
+        for (let i = 0; i < data.length; i++) {
           await supabase
             .from("projects")
             .update({projectSequence:i}) 
@@ -669,12 +697,11 @@ function AllProjectsPage({ navigation }) {
                 />
                 {/* Wrapper for add and cancel buttons */}
                 <View style={styles.projectModalButtonWrapper}>
-                  <TouchableOpacity onPress={addProject}>
-                    <Text style={styles.addButton}>Add</Text>
-                  </TouchableOpacity>
-                  {/* Close the modal when cancel is pressed */}
                   <TouchableOpacity onPress={() => setModalVisible(false)}>
                     <Text style={styles.cancelButton}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={addProject}>
+                    <Text style={styles.addButton}>Add</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -741,8 +768,12 @@ function TaskListPage({ route, navigation }) {
       if (tasksError) {
         alert(tasksError.message);
       } else {
-        // Store task data from Supabase
-        setTasks(data);
+        // Store task data from Supabase or a placeholder if no data for project exist
+        if(data.length > 0) {
+          setTasks(data);
+        } else if (data.length === 0) {
+          setTasks([{"taskTitle": "Enter your first project"}]);
+        }
       }
     } catch (error) {
       alert(error.message);
@@ -862,7 +893,7 @@ function TaskListPage({ route, navigation }) {
         alert(error.message);
       } else {
         // Update the taskSequence column with current sequence when a task is dragged and dropped
-        for (i = 0; i < data.length; i++) {
+        for (let i = 0; i < data.length; i++) {
           await supabase
             .from("tasks")
             .update({taskSequence:i}) 
@@ -1402,7 +1433,7 @@ function AllTasks({ navigation }) {
                     </TouchableOpacity>
                     {/* Registration Page button */}
                     <TouchableOpacity style={styles.addButton} onPress={getAllTasks}>
-                      <Text style={styles.signInText}>Add</Text>
+                      <Text style={styles.signInText}>Sort</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1500,7 +1531,8 @@ function MyDay({ navigation }) {
         const {data, error: myDayError} = await supabase
           .from("myDayTasks")
           .select()
-          .eq("user_id", user.id);
+          .eq("user_id", user.id)
+          .order("myDaySequence");
 
         if (myDayError) {
           alert(myDayError.message);
@@ -1579,6 +1611,28 @@ function MyDay({ navigation }) {
       </View>
     );
   };
+
+  // Save the MyDay task data after a task has been dragged and dropped. Use the updated data to 
+  // update the sequence on Supabase myDaySequence column
+  const DragAndDrop = async ({data}) => {
+    setMyDayTaskTitle(data);
+    try {
+      const {error} = await supabase
+      if (error) {
+        alert(error.message);
+      } else {
+        // Update the mydaySequence column with current sequence when a task is dragged and dropped
+        for (let i = 0; i < data.length; i++) {
+          await supabase
+            .from("myDayTasks")
+            .update({myDaySequence:i}) 
+            .eq("myDayTaskId", data[i].myDayTaskId);
+        }
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  };  
 
   // Returns the wallpaper based on the current weather
   const wallpaperSelector = () => {
@@ -1831,7 +1885,7 @@ function MyDay({ navigation }) {
         <GestureHandlerRootView>
           <DraggableFlatList
             data={myDayTaskTitle}
-            onDragEnd={({data}) => setMyDayTaskTitle(data)}
+            onDragEnd={DragAndDrop}
             keyExtractor={(item) => item.myDayTaskId}
             renderItem={renderItem}
           />
@@ -2095,21 +2149,25 @@ const styles = StyleSheet.create({
   },
   // Project page cancel button
   cancelButton: {
-    backgroundColor: "red",
+    backgroundColor: "#708090",
     padding: 10,
     width: 100,
     textAlign: "center",
     margin: 5,
     borderRadius: 5,
+    color: "white",
+    fontWeight: "bold",
   },
   // Project page add button
   addButton: {
-    backgroundColor: "lightblue",
+    backgroundColor: "#222021",
     padding: 10,
     width: 100,
     textAlign: "center",
     margin: 5,
     borderRadius: 5,
+    color: "white",
+    fontWeight: "bold",
   },
   // Project page modal Add a Project title text
   projectModalTitleText: {
@@ -2137,7 +2195,7 @@ const styles = StyleSheet.create({
   },
   // Add task button on all tasks page / Project - task page
   allTasksAddTaskButton: {
-    backgroundColor: "blue",
+    backgroundColor: "#708090",
     width: "95%",
     padding: 15,
     borderRadius: 5,
@@ -2252,7 +2310,7 @@ const styles = StyleSheet.create({
   },
   // Add task button
   myDayAddTaskButton: {
-    backgroundColor: "blue",
+    backgroundColor: "#7F92A0",
     height: 45,
     aspectRatio: 1,
     justifyContent: "center",
@@ -2260,6 +2318,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     textAlign: "center",
     margin: 5,
+    opacity: 0.8,
   },
   // Delete button
   swipeBox: {
@@ -2298,7 +2357,7 @@ const styles = StyleSheet.create({
   },
   // Pomodoro timer display wrapper - countdown and breaks remaining
   pomodoroTimerWrapper: {
-    width: "80%",
+    width: "75%",
     padding: 15,
     borderRadius: 15,
     textAlign: "center",
@@ -2401,6 +2460,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontStyle: "italic",
   },
+  pomodoroSlider: {
+    width: "80%",
+    justifyContent: "center", 
+    alignItems: "center",
+    alignSelf: "center",
+    marginTop: 10,
+  },
+  pomodoroSliderText: {
+    textAlign:"center",
+    marginTop: 5,
+    fontSize: 14,
+  }
 });
 
 
