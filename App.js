@@ -11,6 +11,8 @@ import {
   useAnimatedValue,
   Modal,
   KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
   Platform,
   SafeAreaView,
   Alert
@@ -25,7 +27,8 @@ import { createClient } from "@supabase/supabase-js";
 import Checkbox from "expo-checkbox";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
-
+import DateTimePicker from '@react-native-community/datetimepicker';
+import {Calendar} from 'react-native-calendars';
 
 // Supabase account 
 // https://supabase.com/docs/guides/auth/quickstarts/react-native
@@ -110,7 +113,7 @@ function PomodoroTimer({ navigation }) {
         } else {
           setSecond(prevSecond => prevSecond - 1);
         }
-      }, 10);
+      }, 1000);
     } else if (timerRunning && minute === 0 && second === 0) {
       // Timer has run out with remaining breaks
       if (breakRemaining > 0) {
@@ -504,6 +507,16 @@ function AllProjectsPage({ navigation }) {
   const [newProjectName, setNewProjectName] = useState("");
   // Show or hide the modal
   const [modalVisible, setModalVisible] = useState(false);
+  // Store project deadline
+  const [deadline, setDeadline] = useState(new Date());
+  // Show or hide the calendar modal
+  const [calendarModalVisible, setCalendarModalVisible] = useState(false);
+  // Selected calendar date on the calendar
+  const [selected, setSelected] = useState([]);
+  // Store projects for selected date
+  const [selectedProjects, setSelectedProjects] = useState([]);
+  // Store project deadline
+  const [calenderDeadline, setCalenderDeadline] = useState({});
 
   // Fetch all project data from Supabase for current user
   // https://supabase.com/docs/reference/javascript/select
@@ -525,6 +538,17 @@ function AllProjectsPage({ navigation }) {
         // Store project data from Supabase or show a placeholder text when no projects exist
         if(data.length > 0) {
           setProject(data);
+          const calenderDates = {};
+          for (let i = 0; i < data.length; i++) {
+            const project = data[i]; 
+            // Get the deadline for projects with a deadline using project title to create multidot marking
+            // https://wix.github.io/react-native-calendars/docs/Components/Calendar
+            if (project.projectDeadline) {
+              const key = project.projectDeadline; 
+              calenderDates[key] = {dots: [{key: project.projectTitle, color: "red"}]};
+            }          
+          }
+          setCalenderDeadline(calenderDates);
         } else if (data.length === 0) {
           setProject([{"projectTitle": "Enter your first project"}]);
         }
@@ -533,8 +557,6 @@ function AllProjectsPage({ navigation }) {
       alert(error.message);
     }
   };
-
-
   useEffect(() => {
     getProjectsSupabase();
   }, []);
@@ -553,11 +575,11 @@ function AllProjectsPage({ navigation }) {
         return;
       }
 
-      // Add the new project name into the projects table on Supabase for current user
+      // Add the new project name and deadline into the projects table on Supabase for current user
       // https://supabase.com/docs/reference/javascript/using-filters
       const {data, error: addProjectError} = await supabase
         .from("projects")
-        .insert({projectTitle: newProjectName, user_id: user.id}) 
+        .insert({projectTitle: newProjectName, user_id: user.id, projectDeadline: deadline}) 
         .select();
 
       if (addProjectError) {
@@ -631,6 +653,15 @@ function AllProjectsPage({ navigation }) {
 
   // Show all projects
   const renderItem = ({item, drag, isActive}) => {
+    // Get the current date
+    const currentDate = new Date();
+    // Get the project deadline date
+    const deadline = new Date(item.projectDeadline);
+    // Calculate the number of days remaining
+    // http://stackoverflow.com/questions/1296358/how-to-subtract-days-from-a-plain-date
+    const timeRemaining = Math.ceil(Math.abs(deadline-currentDate)/(24*60*60*1000));
+    // Display a reminder text when a project is due in 3 days or less
+    const reminder = timeRemaining <= 3;
     {/* Swipe from right to delete a project using ReanimatedSwipable */}
     {/* The following code was learnt and implemented based on the github link below: */}
     {/* https://github.com/software-mansion/react-native-gesture-handler/blob/main/example/src/release_tests/swipeableReanimation/index.tsx#L34 */}
@@ -654,9 +685,60 @@ function AllProjectsPage({ navigation }) {
           onPress={() => navigation.navigate("Tasks", {projectID: item.projectTitle})}
         >
           <Text style={styles.dragTaskProjectRowText}>{item.projectTitle}</Text>
+          {reminder && <Text style={styles.deadlineReminder}>{timeRemaining} Days Left</Text>}
         </TouchableOpacity>
       </ReanimatedSwipeable>
     );
+  };
+
+  // Set the date from the date picker
+  // The following code was obtained from
+  // https://github.com/react-native-datetimepicker/datetimepicker
+  const onChange = (event, selectedDate) => {
+    const currentDate = selectedDate;
+    setDeadline(currentDate);
+    console.log(currentDate);
+  };
+
+  // Redirect to the project page and display the selected project
+  const projectSelectedOnCalender = (projectTitle) => {
+    setCalendarModalVisible(false);
+    navigation.navigate("Tasks", {projectID: projectTitle});
+  };
+
+  // Change modal from calendar to add project
+  const changeToProjectModal = () => {
+    setCalendarModalVisible(false);
+    setModalVisible(true);
+  };
+
+  // Show projects of selected date on the calendar with dots
+  const getProjectsForSelectedDate = () => {
+    // If projects exist for the selected date
+    if(selectedProjects.length > 0) {
+      let projectForSelectedDay = [];
+      // Store projects for the selected date in projectForSelectedDay
+      for (let i = 0; i < selectedProjects.length; i++) {
+        projectForSelectedDay.push(
+          <TouchableOpacity
+            style={styles.calendarProjectRow}
+            // https://stackoverflow.com/questions/28329382/understanding-unique-keys-for-array-children-in-react-js
+            key={selectedProjects[i].projectTitle}
+            onPress={() => projectSelectedOnCalender(selectedProjects[i].projectTitle)}
+          >
+            <Text style={styles.calendarModalProjectText}>{selectedProjects[i].projectTitle}</Text>
+          </TouchableOpacity>
+        );
+      }
+      return projectForSelectedDay;
+    } else {
+      // Display placeholder text when no projects exist for selected date
+      return (
+        <View style={styles.calendarProjectRow}>
+          <Text style={styles.calendarModalProjectText}>No projects found. Select a date with a red dot.</Text>
+        </View>
+      )     
+    }
   };
 
   {/* GestureHandlerRootView needed for draggable flatlist */}
@@ -664,20 +746,29 @@ function AllProjectsPage({ navigation }) {
     <GestureHandlerRootView>
       <View style={styles.container}>
         <View style={styles.mainTitleContainer}>
-          {/* Page title*/}
-          <Text style={styles.mainTitleText}>Project Folders</Text>
+          <View style={styles.projectsTitleContainer}>
+            {/* Page title */}
+            <Text style={styles.mainTitleText}>Project Folders</Text>
+            {/* Show the calendar modal button */}
+            <TouchableOpacity
+              onPress={() => setCalendarModalVisible(true)}
+              style={styles.calendarView}
+            >
+              <Image source={require("./assets/icon/calendar.png")} style={styles.navBarIcon}/>
+           </TouchableOpacity>
+          </View>
           {/* Add project name text input */}
           {/* Show the add project modal when add project is pressed */}
           <View style={styles.addTaskProjectModalWrapper}>
             <TouchableOpacity
-              // Show the modal
+              // Show the add project modal
               onPress={() => setModalVisible(true)}
               style={styles.taskRowMargin}
             >
               <Text style={styles.topRightButton}>Add a project +</Text>
             </TouchableOpacity>
           </View>
-          {/* Create a modal to add projects */}
+          {/* Add projects modal */}
           {/* The following code was learnt and implemented from: */}
           {/* https://reactnative.dev/docs/modal */}
           <Modal
@@ -688,6 +779,7 @@ function AllProjectsPage({ navigation }) {
           >
             <View style={styles.projectModalWrapper}>
               <View style={styles.projectModal}>
+                {/* Project name text input */}
                 <Text style={styles.projectModalTitleText}>Add a Project</Text>
                 <TextInput 
                   style={styles.projectModalTextInput}
@@ -695,6 +787,15 @@ function AllProjectsPage({ navigation }) {
                   onChangeText={setNewProjectName}
                   placeholder="New project name"
                 />
+                {/* Project deadline date picker */}
+                <Text style={styles.projectModalTitleText}>Project Deadline</Text>
+                <View style={styles.projectModalWrapper}>
+                  <DateTimePicker
+                    mode="date"
+                    value={deadline}
+                    onChange={onChange}
+                  />
+                </View>
                 {/* Wrapper for add and cancel buttons */}
                 <View style={styles.projectModalButtonWrapper}>
                   <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -702,6 +803,53 @@ function AllProjectsPage({ navigation }) {
                   </TouchableOpacity>
                   <TouchableOpacity onPress={addProject}>
                     <Text style={styles.addButton}>Add</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+          {/* Calendar Modal */}
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={calendarModalVisible}
+            onRequestClose={() => setCalendarModalVisible(false)}
+          >
+            <View style={styles.projectModalWrapper}>
+              <View style={styles.calendarModal}>
+                <Text style={styles.projectModalTitleText}>Calendar View</Text>
+                {/* All projects calendar view */}
+                {/* https://github.com/wix/react-native-calendars */}
+                <Calendar
+                  // Filter projects by dates and create dots for dates with projects
+                  onDayPress={day => {
+                    setSelected(day.dateString);
+                    const projectsOnCalendar = project.filter(project => {
+                      const projectsDate = new Date(project.projectDeadline);
+                      // Convert the date to match the format used
+                      // https://stackoverflow.com/questions/76181025/convert-date-to-format-thu-jan-01-1970-010000-gmt010-to-date-yyyy-mm-dd
+                      converted = new Date(projectsDate).toLocaleDateString('sv-SE')
+                      console.log("projects dated:" + converted);
+                      if (converted == day.dateString) {
+                        return converted
+                      }
+                    });
+                    setSelectedProjects(projectsOnCalendar);
+                  }}                 
+                  markingType={"multi-dot"}
+                  markedDates={calenderDeadline}
+                />          
+                {/* Display projects for selected date */}
+                <View style={styles.listOfProjects}>
+                  {getProjectsForSelectedDate()}
+                </View>
+                {/* Wrapper for new and cancel buttons */}
+                <View style={styles.calendarModalButtonWrapper}>
+                  <TouchableOpacity onPress={() => setCalendarModalVisible(false)}>
+                    <Text style={styles.cancelButton}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => {changeToProjectModal()}}>
+                    <Text style={styles.addButton}>New</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -768,11 +916,11 @@ function TaskListPage({ route, navigation }) {
       if (tasksError) {
         alert(tasksError.message);
       } else {
-        // Store task data from Supabase or a placeholder if no data for project exist
+        // Store task data from Supabase or insert placeholder if no project data exist
         if(data.length > 0) {
           setTasks(data);
         } else if (data.length === 0) {
-          setTasks([{"taskTitle": "Enter your first project"}]);
+          setTasks([{"taskTitle": "Enter your first task"}]);
         }
       }
     } catch (error) {
@@ -972,7 +1120,6 @@ function TaskListPage({ route, navigation }) {
               <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
               >
-
                 <View style={styles.taskModalBackground}>
                   {/* Task title */}
                   <Text style={styles.taskListModalTitle}>Add a Task</Text>
@@ -1832,6 +1979,14 @@ function MyDay({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeAreaView}>
+    {/* Ensure text input not blocked */} 
+    {/* https://reactnative.dev/docs/keyboardavoidingview */} 
+      <KeyboardAvoidingView
+        keyboardVerticalOffset = {60}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.projectModalWrapper}
+      > 
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       {/* Set the wallpaper based on weather using ImageBackground */}
       <ImageBackground source={wallpaper} style={styles.imgBackground}>
         <Text style={styles.myDayMainTitleText}>My Day</Text>
@@ -1907,6 +2062,8 @@ function MyDay({ navigation }) {
           </TouchableOpacity>
         </View>
       </ImageBackground>
+      </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
       <BottomNavigation navigation={navigation} />
     </SafeAreaView>
   );
@@ -2143,7 +2300,7 @@ const styles = StyleSheet.create({
   projectModal: {
     backgroundColor: "white",
     width: "90%", 
-    height: 190,
+    height: 280,
     alignItems: "center",
     alignSelf: "center",
   },
@@ -2460,6 +2617,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontStyle: "italic",
   },
+  // Individual slider 
   pomodoroSlider: {
     width: "80%",
     justifyContent: "center", 
@@ -2467,11 +2625,62 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginTop: 10,
   },
+  // Slider text description
   pomodoroSliderText: {
     textAlign:"center",
     marginTop: 5,
     fontSize: 14,
-  }
+  },
+  // Red deadline reminder
+  deadlineReminder: {
+    fontSize: 12,
+    backgroundColor: "red",
+    opacity: 0.7,
+    paddingHorizontal: 8,
+    borderRadius: 5,
+    paddingVertical: 2,
+    color: "white",
+  },
+  // Title for all project page
+  projectsTitleContainer: {
+    flexDirection: "row",
+    justifyContent: "left",
+  },
+  // Calender button
+  calendarView: {
+    alignSelf: "center",
+    marginTop: "15", 
+  },
+  // Calendar modal
+  calendarModal: {
+    backgroundColor: "white",
+    width: "95%", 
+    height: "75%",
+    alignSelf: "center",
+  },
+  // Calendar project text for selected date
+  calendarModalProjectText: {
+    fontSize: 16,
+    textAlign: "center",
+  },
+  // Style for each task or project row. MarginBottom covers red from rightSwipe 
+  calendarProjectRow: {
+    height: 45,
+    marginVertical: 3,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F0F0F0"
+  },
+  // Individual project row
+  listOfProjects: {
+    marginTop: 5,
+  },
+  // Calendar modal button wrapper
+  calendarModalButtonWrapper: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    paddingTop: 20,
+  },
 });
 
 
