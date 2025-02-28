@@ -15,7 +15,7 @@ import {
   Keyboard,
   Platform,
   SafeAreaView,
-  Alert
+  Alert,
 } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import DraggableFlatList from "react-native-draggable-flatlist";
@@ -29,6 +29,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Slider from '@react-native-community/slider';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import {Calendar} from 'react-native-calendars';
+import lightStyle from "./style/lightStyle";
+import darkStyle from "./style/darkStyle";
+import * as Updates from 'expo-updates';
+import { Audio } from 'expo-av';
 
 // Supabase account 
 // https://supabase.com/docs/guides/auth/quickstarts/react-native
@@ -68,7 +72,213 @@ function BottomNavigation({ navigation }) {
         <Image testID={"pomodoroImage"} source={require("./assets/icon/pomodoro.png")} style={styles.navBarIcon}/>
         <Text style={styles.navBarText}>Pomo</Text>
       </TouchableOpacity>
+      {/* Setting page */}
+      <TouchableOpacity style={styles.navBarButton} onPress={() => navigation.navigate("Setting")}>
+        <Image testID={"settingImage"} source={require("./assets/icon/setting.png")} style={styles.navBarIcon}/>
+        <Text style={styles.navBarText}>Setting</Text>
+      </TouchableOpacity>
     </View>
+  );
+}
+
+
+// Setting Page 
+// The following code was learnt from:
+// https://supabase.com/docs/guides/auth/quickstarts/react-native
+// https://supabase.com/blog/react-native-authentication
+// https://supabase.com/docs/reference/javascript/update
+function Setting({ navigation }) {
+  // Store dark or light style
+  const [style, setStyle] = useState();
+
+  // Fetch user setting from Supabase for current user
+  // https://supabase.com/docs/reference/javascript/select
+  const getSettingSupabase = async () => {
+    try {
+      // Get the user details in order to obtain the user id
+      const {data:{user}} = await supabase.auth.getUser();
+
+      // Fetch user style from users table based on user id and unique uuid from Supabase table
+      const {data, error: settingError} = await supabase
+        .from("users")
+        .select()
+        .eq("id", user.id)
+      
+      if (settingError) {
+        alert(settingError.message);
+      } else {
+        // Store userStyle from Supabase
+        setStyle(data[0].userStyle);
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+  useEffect(() => {
+    getSettingSupabase();
+  }, []);
+
+  // Set styling to darkStyle
+  const setDarkStyle = async () => {
+    try {
+      // Get the user details in order to obtain the user id
+      const {data:{user}} = await supabase.auth.getUser();
+
+      // Fetch user style from users table based on user id and unique uuid from Supabase
+      const {data, error: settingError} = await supabase
+        .from("users")
+        .update({userStyle: "darkStyle"})
+        .eq("id", user.id);
+
+      if (settingError) {
+        alert(settingError.message);
+      } else {
+        // Store userStyle from Supabase, reload YourTime and navigate to settings page
+        setStyle("darkStyle");
+        // https://stackoverflow.com/questions/37489946/programmatically-restart-a-react-native-app
+        await Updates.reloadAsync();
+        navigation.navigate("Setting");
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+  useEffect(() => {
+    getSettingSupabase();
+  }, []);
+
+  // Set styling to lightStyle
+  // https://supabase.com/docs/reference/javascript/select
+  const setLightStyle = async () => {
+    try {
+      // Get the user details in order to obtain the user id
+      const {data:{user}} = await supabase.auth.getUser();
+
+      // Fetch user style from users table based on user id and unique uuid from Supabase
+      const {data, error: settingError} = await supabase
+        .from("users")
+        .update({userStyle: "lightStyle"})
+        .eq("id", user.id);
+
+      if (settingError) {
+        alert(settingError.message);
+      } else {
+        // Store userStyle from Supabase, reload YourTime and navigate to settings page
+        setStyle("lightStyle");
+        // https://stackoverflow.com/questions/37489946/programmatically-restart-a-react-native-app
+        await Updates.reloadAsync();
+        navigation.navigate("Setting");
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+  useEffect(() => {
+    getSettingSupabase();
+  }, []);
+
+  // Turn off background music
+  const offBgMusic = async () => {
+    try {
+      // Get the user details
+      const {data:{user}} = await supabase.auth.getUser();
+
+      // Update audio enum on Supabase to Off to stop music
+      const {data, error: settingError} = await supabase
+        .from("users")
+        .update({audio: "Off"})
+        .eq("id", user.id);
+
+      if (settingError) {
+        alert(settingError.message);
+      } else {
+        // https://stackoverflow.com/questions/37489946/programmatically-restart-a-react-native-app
+        await Updates.reloadAsync();
+        navigation.navigate("Setting");
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+  useEffect(() => {
+    getSettingSupabase();
+  }, []);
+
+  // Turn off background music
+  const onBgMusic = async () => {
+    try {
+      // Get the user details
+      const {data:{user}} = await supabase.auth.getUser();
+
+      // Update audio enum on Supabase to On to start music
+      const {data, error: settingError} = await supabase
+        .from("users")
+        .update({audio: "On"})
+        .eq("id", user.id);
+
+      if (settingError) {
+        alert(settingError.message);
+      } else {
+        // https://stackoverflow.com/questions/37489946/programmatically-restart-a-react-native-app
+        await Updates.reloadAsync();
+        navigation.navigate("Setting");
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+  useEffect(() => {
+    getSettingSupabase();
+  }, []);
+
+  // Sign out from YourTime and navigate to Welcome page
+  const signOutSupabase = async () => {
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        alert(error.message);
+      } else {
+        alert("Good Bye! See you again soon!");
+      }
+      navigation.navigate("Welcome");
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.safeAreaView}>
+      <Text style={styles.mainTitleText}>User Setting</Text>
+      <View style={styles.settingInputWrapper}>
+        {/* Email text input */}
+        <View style={styles.inputHorizontalButtonWrapper}>
+          {/* Dark style button */}
+          <TouchableOpacity style={styles.settingLeftButton} onPress={setDarkStyle}>
+            <Text style={styles.signInText}>Set Dark Mode</Text>
+          </TouchableOpacity>
+          {/* Light style button */}
+          <TouchableOpacity style={styles.settingRightButton} onPress={setLightStyle}>
+            <Text style={styles.signInText}>Set Light Mode</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.inputHorizontalButtonWrapper}>
+          {/* Off Bg Music */}
+          <TouchableOpacity style={styles.settingLeftButton} onPress={offBgMusic}>
+            <Text style={styles.signInText}>Off Music</Text>
+          </TouchableOpacity>
+          {/* On Bg Music */}
+          <TouchableOpacity style={styles.settingRightButton} onPress={onBgMusic}>
+            <Text style={styles.signInText}>On Music</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      {/* Sign Out button */}
+      <TouchableOpacity style={styles.signOutButton} onPress={signOutSupabase}>
+        <Text style={styles.signInText}>Sign Out</Text>
+      </TouchableOpacity>
+      {/* Show bottom navigation bar */}
+      <BottomNavigation navigation={navigation}/>
+    </SafeAreaView>
   );
 }
 
@@ -402,7 +612,7 @@ function RegistrationPage({ navigation }) {
   return (
     <SafeAreaView style={styles.safeAreaView}>
       <Text style={styles.mainTitleText}>Register</Text>
-      <View style={styles.emailPasswordInputWrapper}>
+      <View style={styles.inputWrapper}>
         <TextInput
           testID="emailAddress"
           style={styles.taskInput}
@@ -469,7 +679,7 @@ function SignInPage({ navigation }) {
   return (
     <SafeAreaView style={styles.safeAreaView}>
       <Text style={styles.mainTitleText}>Sign In</Text>
-      <View style={styles.emailPasswordInputWrapper}>
+      <View style={styles.inputWrapper}>
         {/* Email text input */}
         <TextInput
           testID="emailAddress"
@@ -1179,7 +1389,7 @@ function TaskListPage({ route, navigation }) {
         </TouchableOpacity>
       </GestureHandlerRootView>
       {/* Show bottom navigation bar */}
-      <BottomNavigation navigation={navigation} />
+      <BottomNavigation navigation={navigation}/>
     </SafeAreaView>
   );
 }
@@ -2072,6 +2282,76 @@ function MyDay({ navigation }) {
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  // Store user style from Supabase (lightStyle or darkStyle)
+  const [style, setStyle] = useState("lightStyle");
+  // Store audio playback state
+  const [audio, setAudio] = useState("");
+  // Sound from playSound - https://docs.expo.dev/versions/latest/sdk/audio-av/
+  const [sound, setSound] = useState();
+  // Store playback state to avoid multiple playback at once
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Fetch user setting from Supabase for current user
+  // https://supabase.com/docs/reference/javascript/select
+  const getSettingSupabase = async () => {
+    try {
+      // Get the user details in order to obtain the user id
+      const {data:{user}} = await supabase.auth.getUser();
+
+      // Fetch user style from users table based on user id and unique uuid from Supabase
+      const {data, error: settingError} = await supabase
+        .from("users")
+        .select()
+        .eq("id", user.id)
+      
+      if (settingError) {
+        alert(settingError.message);
+      } else {
+        // Store userStyle and audio state from Supabase
+        setStyle(data[0].userStyle);
+        setAudio(data[0].audio);
+      }
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+  useEffect(() => {
+    getSettingSupabase();
+  }, []);
+
+  // Set the style to light or dark mode
+  if (style == ("lightStyle")) {
+    styles = lightStyle;
+  } else if (style == ("darkStyle")) {
+    styles = darkStyle;
+  };
+
+  // The following playSound and useEffect code was obtained from:
+  // https://docs.expo.dev/versions/latest/sdk/audio-av/
+  async function playSound() {
+    const {sound} = await Audio.Sound.createAsync(require('./assets/audio/work.mp3'));
+    setSound(sound);
+    await sound.playAsync();
+  };
+
+  useEffect(() => {
+    return sound
+      ? () => {
+        console.log('Unloading Sound');
+        sound.unloadAsync();
+        }
+      : undefined;
+  }, [sound]);
+  // End of code obtained from expo doc
+
+  // Start the audio playback if music is not running
+  if (audio == ("On")) {
+    if (!isPlaying) {
+      playSound();
+      setIsPlaying(true); 
+    }
+  };
+  
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Welcome">
@@ -2083,6 +2363,7 @@ export default function App() {
         <Stack.Screen name="SignIn" component={SignInPage} />
         <Stack.Screen name="Register" component={RegistrationPage} />
         <Stack.Screen name="Pomodoro" component={PomodoroTimer} />
+        <Stack.Screen name="Setting" component={Setting} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -2090,599 +2371,6 @@ export default function App() {
 
 // Export for unit testing
 export {PomodoroTimer, BottomNavigation, WelcomePage, RegistrationPage, SignInPage};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F0F0F0",
-    padding: 0,
-    margin: 0,
-  },
-  safeAreaView: {
-    flex: 1,
-    margin: 0,
-    padding: 0,
-    backgroundColor: "#F0F0F0",
-  },
-  scrollViewContent: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  // Welcome page logo 
-  yourTimeLogo: {
-    justifyContent: "center",
-    alignItems: "center",
-    marginVertical: 10,
-  },
-  // YourTime logo image
-  yourTimeImage: {
-    maxWidth: 400,
-    maxHeight: 400,
-  },
-  // Sign in button
-  signInButton: {
-    backgroundColor: "green",
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    marginVertical: 10,
-    alignItems: "center",
-    width: "90%",
-    alignSelf: "center",
-  },
-  // Sign up button
-  signUpButton: {
-    backgroundColor: "blue",
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    marginVertical: 10,
-    alignItems: "center",
-    width: "90%",
-    alignSelf: "center",
-    marginBottom: "20%",
-  },
-  // Larger font on sign in/up button
-  signInLargeText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  // Medium font on sign in/up button
-  signInText: {
-    color: "white",
-    fontSize: 16,
-    textAlign: "center",
-    marginTop: 5,
-    fontWeight: "bold",
-  },
-  // Small font on sign in/up button
-  signInSmallText: {
-    color: "white",
-    fontSize: 14,
-    textAlign: "center",
-    marginTop: 5,
-  },
-  // All Pages except My Day - Title on top left 
-  mainTitleText: {
-    color: "black",
-    fontSize: 28,
-    textAlign: "left",
-    paddingTop: 20,
-    paddingLeft: 17,
-    width: "80%",
-  },
-  // My Day Page Title (White font)
-  myDayMainTitleText: {
-    textAlign: "left",
-    paddingTop: 20,
-    paddingLeft: 17,
-    width: "80%",
-    color: "white",
-    fontSize: 28,
-  },
-  // Style for each task or project row. MarginBottom covers red from rightSwipe 
-  dragTaskProjectRow: {
-    height: 50,
-    marginTop: 10,
-    marginBottom: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  // Font for each task or project row
-  dragTaskProjectRowText: {
-    fontSize: 20,
-    textAlign: "left",
-  },
-  // Style for dynamic wallpaper on My Day page
-  imgBackground: {
-    flex: 1,
-    resizeMode: "cover",
-    height: "100%",
-  },
-  // Style for swipeable delete button. Margin bottom controls spacing between rows
-  rightSwipe: {
-    height: 50,
-    marginTop: 0,
-    marginBottom: 5,
-    justifyContent: "center",
-    backgroundColor: "red",
-  },
-  // Font for delete button
-  swipeDeleteText: {
-    color: "white",
-    paddingHorizontal: 5,
-  },
-  // Style for location and weather info wrapper - Left side of the weather display
-  weatherTextWrapper: {
-    marginLeft: 20,
-    marginTop: 10,
-    width: "50%",
-  },
-  // Font style for location
-  weatherText: {
-    color: "#222",
-    fontSize: 22,
-    fontWeight: "bold",
-  },
-  // Font style for temperature
-  weatherTempText: {
-    color: "#777",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  // Font style for weather description
-  weatherDescriptionText: {
-    color: "#666",
-    fontSize: 16,
-    fontWeight: "bold",
-    textTransform: "capitalize",
-  },
-  // Email and password text input wrapper
-  emailPasswordInputWrapper: {
-    padding: 20,
-    marginVertical: 10,
-  },
-  // Nav bar button wrapper
-  navBarWrapper: {
-    width: "100%",
-    position: "absolute",
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row", 
-    bottom: 20, 
-    backgroundColor: "#f0f0f0", 
-    paddingTop: 10,
-  },
-  // Nav bar icons
-  navBarIcon: {
-    width: 30,
-    height: 30,
-    marginHorizontal: 5,
-  },
-  // Nav bar horizontal seperation for buttons
-  navBarButton: {
-    marginLeft: "3%",
-    marginRight: "3%",
-  },
-  // Nav bar button text
-  navBarText: {
-    textAlign: "center",
-    fontSize: 11,
-  },
-  // Add project/task button on top right of relevant pages
-  topRightButton: {
-    textAlign: "right",
-    marginRight: 10,
-  },
-  // Sort button
-  topLeftButton: {
-    textAlign: "left",
-    marginLeft: 10,
-  },
-  // Vertical margin above and below rows of tasks/projects
-  taskRowMargin: {
-    marginVertical: 5,
-  },
-  // Add a project button
-  addTaskProjectModalWrapper: {
-    textAlign: "right",
-    marginTop: 5,
-  },
-  // Add task/ sort button wrapper
-  sortProjectModalWrapper: {
-    justifyContent: "space-between",
-    marginTop: 5,
-    flexDirection: "row", 
-  },
-  // Project page modal 
-  projectModal: {
-    backgroundColor: "white",
-    width: "90%", 
-    height: 280,
-    alignItems: "center",
-    alignSelf: "center",
-  },
-  // Project page cancel button
-  cancelButton: {
-    backgroundColor: "#708090",
-    padding: 10,
-    width: 100,
-    textAlign: "center",
-    margin: 5,
-    borderRadius: 5,
-    color: "white",
-    fontWeight: "bold",
-  },
-  // Project page add button
-  addButton: {
-    backgroundColor: "#222021",
-    padding: 10,
-    width: 100,
-    textAlign: "center",
-    margin: 5,
-    borderRadius: 5,
-    color: "white",
-    fontWeight: "bold",
-  },
-  // Project page modal Add a Project title text
-  projectModalTitleText: {
-    fontSize: 16,
-    margin: 20,
-    textAlign: "center",
-  },
-  // Project page modal text input
-  projectModalTextInput: {
-    width: "80%",
-    textAlign: "center",
-    fontSize: 14,
-    height: 35,
-    padding: 5,
-    borderColor: "#ccc",
-    borderWidth: 2,
-    borderRadius: 5,
-    marginBottom: 20,
-    paddingHorizontal: 20,
-  },
-  // Projects modal - make buttons appear side by side
-  projectModalButtonWrapper: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  // Add task button on all tasks page / Project - task page
-  allTasksAddTaskButton: {
-    backgroundColor: "#708090",
-    width: "95%",
-    padding: 15,
-    borderRadius: 5,
-    marginTop: 20,
-    alignSelf: "center",
-    alignContent: "center",
-    marginBottom: 50,
-  },
-  // Add task button on all tasks page / Project - task page
-  addTaskText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  // Position the project modal at the center
-  projectModalWrapper: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  // Position the tasks page modal at the bottom
-  taskModalWrapper: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  // Tasks modal background colour
-  taskModalBackground: {
-    backgroundColor: "#fff",
-    padding: 20,
-  },
-  // Title on tasks page modal - Add task and notes
-  taskListModalTitle: {
-    fontSize: 18,
-    textAlign: "center",
-    margin: 10,
-  },
-  // Text input on tasks page modal
-  taskInput: {
-    height: 45,
-    backgroundColor: "white",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    paddingHorizontal: 10,
-    marginBottom: 20,
-  },
-  // Tasks modal button wrapper
-  taskModalButtonWrapper: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    margin: 10,
-    marginBottom: 25,
-  },
-  // My day forecast display on the right
-  forecastSection: {
-    width: "50%",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingRight: 10,
-  },
-  // Three weather forecast icons
-  iconRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    width: "90%",
-    marginBottom: 0,
-  },
-  // Weather forecast icon 
-  forecastWeatherIcon: {
-    width: 50,
-    height: 50,
-  },
-  // Three weather description below the icon. Same as iconRow
-  labelRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    width: "90%",
-  },
-  // Weather description text
-  forecastWeatherText: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#444",
-  },
-  // Make the current weather and weather forecast appear side by side 
-  weatherWrapper: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    margin: 5,
-    marginTop: 10,
-    marginBottom: 20,
-    borderRadius: 5,
-    backgroundColor: "#ccc",
-    opacity: 0.8,
-    paddingBottom: 10,
-  },
-  // Make the text input and + button appear side by side 
-  myDayTaskInputWrapper: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 40,
-    marginRight: 10,
-    alignContent: "center",
-  },
-  // Add task text input
-  myDayTaskInput: {
-    backgroundColor: "#f8f8f8",
-    width: "85%",
-    borderRadius: 10,
-    height: 45,
-    textAlign: "center",
-    margin: 5,
-  },
-  // Add task button
-  myDayAddTaskButton: {
-    backgroundColor: "#7F92A0",
-    height: 45,
-    aspectRatio: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 10,
-    textAlign: "center",
-    margin: 5,
-    opacity: 0.8,
-  },
-  // Delete button
-  swipeBox: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  // Working, break time, break remaining wrapper
-  pomodoroInputRowWrapper: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 20,
-    marginHorizontal: 30,
-  },
-  // Text input description
-  pomodoroInputLineText: {
-    fontSize: 16,
-    padding: 10,
-    marginTop: 5,
-  },
-  // Pomodoro text inputs
-  pomodoroTextInput: {
-    fontSize: 18,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    paddingVertical: 5,
-    width: 100,
-    textAlign: "center",
-    borderRadius: 5,
-  },
-  // Pomodoro button wrapper - start, stop, reset
-  pomodoroCountdownButtonWrapper: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignSelf: "center",
-    marginTop: 50,
-  },
-  // Pomodoro timer display wrapper - countdown and breaks remaining
-  pomodoroTimerWrapper: {
-    width: "75%",
-    padding: 15,
-    borderRadius: 15,
-    textAlign: "center",
-    justifyContent: "center",
-    alignItems: "center",
-    alignSelf: "center",
-    marginVertical: 30,
-  },
-  // Countdown timer text
-  pomodoroCountdownText: {
-    color: "white",
-    fontSize: 50,
-    fontWeight: "bold",
-  },
-  // Countdown status text - working or break time
-  pomodoroStatusText: {
-    color: "white",
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  // Break remaining text
-  pomodoroBreakText: {
-    color: "white",
-    fontSize: 15,
-  },
-  // Pomodoro start button
-  startButton: {
-    backgroundColor: "green",
-    width: 80,
-    height: 80,
-    padding: 10,
-    borderRadius: 50,
-    alignItems: "center",
-    marginHorizontal: 10,
-  },
-  // Pomodoro stop button
-  stopButton: {
-    backgroundColor: "red",
-    width: 80,
-    height: 80,
-    padding: 10,
-    borderRadius: 50,
-    alignItems: "center",
-  },
-  // Pomodoro reset button
-  resetButton: {
-    backgroundColor: "orange",
-    width: 80,
-    height: 80,
-    padding: 10,
-    borderRadius: 50,
-    alignItems: "center",
-  },
-  // Pomodoro button font
-  pomodoroButtonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginVertical: "auto",
-  },
-  // Info button on welcome page
-  infoButton: {
-    alignItems: "flex-end",   
-    marginRight: 10,
-    marginBottom: 30,
-  },
-  // Info button font and background 
-  infoButtonText: {
-    fontSize: 15,
-    backgroundColor: "#ccc",
-    padding: 5,
-    borderRadius: 30,
-    textAlign: "center",
-    aspectRatio: 1,
-    color: "white", 
-    fontWeight: "bold",
-    fontStyle: "italic",
-  },
-  // Information modal on welcome page
-   infoModal: {
-    backgroundColor: "#f1f1f1",
-    opacity: 0.9,
-    justifyContent: "center", 
-    alignItems: "center",
-    alignSelf: "center",
-    marginVertical: "auto",
-    width: "100%",
-    height: "80%",
-    borderRadius: 20,
-  },
-  // Large font on info modal
-  welcomeInfoTextLarge: {
-    color: "black",
-    fontSize: 18,
-    margin: 2,
-  },
-  // Small font on info modal
-  welcomeInfoTextSmall: {
-    color: "#555",
-    fontSize: 15,
-    fontStyle: "italic",
-  },
-  // Individual slider 
-  pomodoroSlider: {
-    width: "80%",
-    justifyContent: "center", 
-    alignItems: "center",
-    alignSelf: "center",
-    marginTop: 10,
-  },
-  // Slider text description
-  pomodoroSliderText: {
-    textAlign:"center",
-    marginTop: 5,
-    fontSize: 14,
-  },
-  // Red deadline reminder
-  deadlineReminder: {
-    fontSize: 12,
-    backgroundColor: "red",
-    opacity: 0.7,
-    paddingHorizontal: 8,
-    borderRadius: 5,
-    paddingVertical: 2,
-    color: "white",
-  },
-  // Title for all project page
-  projectsTitleContainer: {
-    flexDirection: "row",
-    justifyContent: "left",
-  },
-  // Calender button
-  calendarView: {
-    alignSelf: "center",
-    marginTop: "15", 
-  },
-  // Calendar modal
-  calendarModal: {
-    backgroundColor: "white",
-    width: "95%", 
-    height: "75%",
-    alignSelf: "center",
-  },
-  // Calendar project text for selected date
-  calendarModalProjectText: {
-    fontSize: 16,
-    textAlign: "center",
-  },
-  // Style for each task or project row. MarginBottom covers red from rightSwipe 
-  calendarProjectRow: {
-    height: 45,
-    marginVertical: 3,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#F0F0F0"
-  },
-  // Individual project row
-  listOfProjects: {
-    marginTop: 5,
-  },
-  // Calendar modal button wrapper
-  calendarModalButtonWrapper: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    paddingTop: 20,
-  },
-});
-
 
 // Image reference
 // https://wallpaperdelight.com/wallpapers/aesthetic-flower-wallpaper/
@@ -2692,3 +2380,9 @@ const styles = StyleSheet.create({
 // https://www.pexels.com/photo/blue-sky-96622/
 // https://commons.wikimedia.org/wiki/File:Thunderstorm_003.jpg
 // https://www.flickr.com/photos/coconinonationalforest/7699564540
+// https://commons.wikimedia.org/wiki/File:Settings_%2889646%29_-_The_Noun_Project.svg
+
+// Music reference
+// https://pixabay.com/music/beats-satisfying-lofi-for-focus-study-amp-working-242103/
+// https://pixabay.com/music/modern-classical-end-of-day-196616/
+// https://pixabay.com/music/rock-action-rock-energetic-sport-finish-line-short-version-210311/

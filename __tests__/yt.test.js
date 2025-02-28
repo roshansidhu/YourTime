@@ -216,6 +216,10 @@ describe("BottomNavigation", () => {
     const pomodoroTimer = require("../assets/icon/pomodoro.png");
     expect(getByTestId("pomodoroImage").props.source).toEqual(pomodoroTimer);
     expect(getByText("Pomo")).toBeTruthy();
+    // Setting page
+    const setting = require("../assets/icon/setting.png");
+    expect(getByTestId("settingImage").props.source).toEqual(setting);
+    expect(getByText("Setting")).toBeTruthy();
   });
 });
 
