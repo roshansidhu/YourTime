@@ -33,6 +33,8 @@ import lightStyle from "./style/lightStyle";
 import darkStyle from "./style/darkStyle";
 import * as Updates from 'expo-updates';
 import { Audio } from 'expo-av';
+import { addEventListener } from "@react-native-community/netinfo";
+
 
 // Supabase account 
 // https://supabase.com/docs/guides/auth/quickstarts/react-native
@@ -81,6 +83,17 @@ function BottomNavigation({ navigation }) {
   );
 }
 
+// Error Page 
+function ErrorPage({ route, navigation }) {
+  const {errorMessage} = route.params;
+
+  return (    
+    <View style={styles.errorMessage}>
+      <Image source={require("./assets/image/logo.png")} style={styles.yourTimeImage}/>
+      <Text style={styles.errorMessageText}>{errorMessage}. Please standby.</Text>
+    </View>
+  );
+}
 
 // Setting Page 
 // The following code was learnt from:
@@ -105,13 +118,15 @@ function Setting({ navigation }) {
         .eq("id", user.id)
       
       if (settingError) {
-        alert(settingError.message);
+        console.log(settingError.message);
+        navigation.navigate("Error Page", {errorMessage: "Unable to retreive user setting."});
       } else {
         // Store userStyle from Supabase
         setStyle(data[0].userStyle);
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
+      navigation.navigate("Error Page", {errorMessage: "Supabase setting page error."});
     }
   };
   useEffect(() => {
@@ -131,7 +146,7 @@ function Setting({ navigation }) {
         .eq("id", user.id);
 
       if (settingError) {
-        alert(settingError.message);
+        console.log(settingError.message);
       } else {
         // Store userStyle from Supabase, reload YourTime and navigate to settings page
         setStyle("darkStyle");
@@ -140,7 +155,8 @@ function Setting({ navigation }) {
         navigation.navigate("Setting");
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
+      navigation.navigate("Error Page", {errorMessage: "Supabase setting page error."});
     }
   };
   useEffect(() => {
@@ -161,7 +177,7 @@ function Setting({ navigation }) {
         .eq("id", user.id);
 
       if (settingError) {
-        alert(settingError.message);
+        console.log(settingError.message);
       } else {
         // Store userStyle from Supabase, reload YourTime and navigate to settings page
         setStyle("lightStyle");
@@ -170,7 +186,8 @@ function Setting({ navigation }) {
         navigation.navigate("Setting");
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
+      navigation.navigate("Error Page", {errorMessage: "Supabase Error."});
     }
   };
   useEffect(() => {
@@ -190,14 +207,15 @@ function Setting({ navigation }) {
         .eq("id", user.id);
 
       if (settingError) {
-        alert(settingError.message);
+        console.log(settingError.message);
       } else {
         // https://stackoverflow.com/questions/37489946/programmatically-restart-a-react-native-app
         await Updates.reloadAsync();
         navigation.navigate("Setting");
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
+      navigation.navigate("Error Page", {errorMessage: "Supabase Bg music error."});
     }
   };
   useEffect(() => {
@@ -217,14 +235,15 @@ function Setting({ navigation }) {
         .eq("id", user.id);
 
       if (settingError) {
-        alert(settingError.message);
+        console.log(settingError.message);
       } else {
         // https://stackoverflow.com/questions/37489946/programmatically-restart-a-react-native-app
         await Updates.reloadAsync();
         navigation.navigate("Setting");
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
+      navigation.navigate("Error Page", {errorMessage: "Supabase Bg music error."});
     }
   };
   useEffect(() => {
@@ -236,13 +255,14 @@ function Setting({ navigation }) {
     try {
       const { error } = await supabase.auth.signOut()
       if (error) {
-        alert(error.message);
+        console.log(error.message);
       } else {
         alert("Good Bye! See you again soon!");
       }
       navigation.navigate("Welcome");
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
+      navigation.navigate("Error Page", {errorMessage: "Supabase sign out error."});
     }
   };
 
@@ -540,7 +560,8 @@ function WelcomePage({ navigation }) {
           <Text style={styles.welcomeInfoTextLarge}> </Text>
 
           <Text style={styles.welcomeInfoTextLarge}>All Projects</Text>
-          <Text style={styles.welcomeInfoTextSmall}>Create and manage project folders.</Text>
+          <Text style={styles.welcomeInfoTextSmall}>Create and manage projects.</Text>
+          <Text style={styles.welcomeInfoTextSmall}>Track project deadlines using the calendar.</Text>
           <Text style={styles.welcomeInfoTextLarge}> </Text>
 
           <Text style={styles.welcomeInfoTextLarge}>My Day</Text>
@@ -549,10 +570,16 @@ function WelcomePage({ navigation }) {
 
           <Text style={styles.welcomeInfoTextLarge}>All Tasks</Text>
           <Text style={styles.welcomeInfoTextSmall}>View all your tasks here.</Text>
+          <Text style={styles.welcomeInfoTextSmall}>YourTime can automatically sort tasks for you.</Text>
           <Text style={styles.welcomeInfoTextLarge}> </Text>
 
           <Text style={styles.welcomeInfoTextLarge}>Pomodoro Timer</Text>
-          <Text style={styles.welcomeInfoTextSmall}>Manage your time better using this timer.</Text>
+          <Text style={styles.welcomeInfoTextSmall}>Manage your time better when performing tasks.</Text>
+          <Text style={styles.welcomeInfoTextLarge}> </Text>
+
+          <Text style={styles.welcomeInfoTextLarge}>Settings</Text>
+          <Text style={styles.welcomeInfoTextSmall}>Select dark or light mode.</Text>
+          <Text style={styles.welcomeInfoTextSmall}>Turn on or off background music.</Text>
           <Text style={styles.welcomeInfoTextLarge}> </Text>
 
           <TouchableOpacity style={styles.signUpButton} onPress={hideModal}>
@@ -590,7 +617,7 @@ function RegistrationPage({ navigation }) {
         password,
       });
       if (error) {
-        alert(error.message);
+        console.log(error.message);
       }
 
       // Add the new user's id and email to the users table 
@@ -599,13 +626,14 @@ function RegistrationPage({ navigation }) {
         .from("users")
         .insert({id: user.id, email});
         if (userTableError) {
-          alert(userTableError.message);
+          console.log(userTableError.message);
         } else {
           alert("Sucessfully registered! Sign in to begin using YourTime");
         }
         navigation.navigate("SignIn");
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
+      navigation.navigate("Error Page", {errorMessage: "Supabase registration error."});
     }
   };
 
@@ -615,7 +643,7 @@ function RegistrationPage({ navigation }) {
       <View style={styles.inputWrapper}>
         <TextInput
           testID="emailAddress"
-          style={styles.taskInput}
+          style={styles.emailInput}
           value={email}
           onChangeText={setEmail}
           placeholder="Email"
@@ -623,7 +651,7 @@ function RegistrationPage({ navigation }) {
         />
         <TextInput
           testID="password"
-          style={styles.taskInput}
+          style={styles.emailInput}
           value={password}
           onChangeText={setPassword}
           placeholder="Password"
@@ -650,29 +678,30 @@ function SignInPage({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // https://stackoverflow.com/questions/43676695/email-validation-react-native-returning-the-result-as-invalid-for-all-the-e
-  const checkValidEmail = (email) => {
-    if(!( /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))){
-      alert("Incorrect email address");
-    }
-  };
-
   const signInSupabase = async () => {
-    checkValidEmail(email);
     // Sign in and redirect to All Projects page
     try {
+      // Check for valid email
+      // https://stackoverflow.com/questions/43676695/email-validation-react-native-returning-the-result-as-invalid-for-all-the-e
+      if(!( /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))){
+        alert("Incorrect email address");
+        navigation.navigate("SignIn");
+        return;
+      }
       const {error} = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) {
-        alert(error.message);
+        console.log(error.message);
+        alert("Incorrect password!");
+        navigation.navigate("SignIn");
       } else {
         alert("Welcome to YourTime!");
+        navigation.navigate("All Projects");
       }
-      navigation.navigate("All Projects");
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
     }
   };
 
@@ -683,19 +712,21 @@ function SignInPage({ navigation }) {
         {/* Email text input */}
         <TextInput
           testID="emailAddress"
-          style={styles.taskInput}     
+          style={styles.emailInput}     
           value={email}
           onChangeText={setEmail}
           placeholder="Email"
+          autoCapitalize="none"
         />
         {/* Password text input */}
         <TextInput
           testID="password"
-          style={styles.taskInput}
+          style={styles.emailInput}
           value={password}
           onChangeText={setPassword}
           placeholder="Password"
           secureTextEntry
+          autoCapitalize="none"
         />
         {/* Sign In button */}
         <TouchableOpacity style={styles.signInButton} onPress={signInSupabase}>
@@ -727,6 +758,8 @@ function AllProjectsPage({ navigation }) {
   const [selectedProjects, setSelectedProjects] = useState([]);
   // Store project deadline
   const [calenderDeadline, setCalenderDeadline] = useState({});
+  // Show or hide the datepicker
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Fetch all project data from Supabase for current user
   // https://supabase.com/docs/reference/javascript/select
@@ -764,7 +797,8 @@ function AllProjectsPage({ navigation }) {
         }
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
+      navigation.navigate("Error Page", {errorMessage: "Supabase database error."});
     }
   };
   useEffect(() => {
@@ -801,7 +835,8 @@ function AllProjectsPage({ navigation }) {
         setNewProjectName(""); 
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
+      navigation.navigate("Error Page", {errorMessage: "Supabase database error."});
     }
   };
 
@@ -825,7 +860,8 @@ function AllProjectsPage({ navigation }) {
         );
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
+      navigation.navigate("Error Page", {errorMessage: "Supabase database error."});
     }
   };
 
@@ -846,7 +882,7 @@ function AllProjectsPage({ navigation }) {
     try {
       const {error} = await supabase
       if (error) {
-        alert(error.message);
+        console.log(error.message);
       } else {
         // Update the projectSequence column with current sequence when a project is dragged and dropped
         for (let i = 0; i < data.length; i++) {
@@ -857,7 +893,8 @@ function AllProjectsPage({ navigation }) {
         }
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
+      navigation.navigate("Error Page", {errorMessage: "Supabase database error."});
     }
   };  
 
@@ -907,7 +944,7 @@ function AllProjectsPage({ navigation }) {
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate;
     setDeadline(currentDate);
-    console.log(currentDate);
+    setShowDatePicker(false);
   };
 
   // Redirect to the project page and display the selected project
@@ -1000,11 +1037,17 @@ function AllProjectsPage({ navigation }) {
                 {/* Project deadline date picker */}
                 <Text style={styles.projectModalTitleText}>Project Deadline</Text>
                 <View style={styles.projectModalWrapper}>
-                  <DateTimePicker
+                  <TouchableOpacity 
+                    style={styles.datePickerButton} 
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Text style={styles.dateTimePickerText}>{deadline.toLocaleDateString('sv-SE')}</Text>
+                  </TouchableOpacity>
+                  {showDatePicker && (<DateTimePicker
                     mode="date"
                     value={deadline}
                     onChange={onChange}
-                  />
+                  />)}
                 </View>
                 {/* Wrapper for add and cancel buttons */}
                 <View style={styles.projectModalButtonWrapper}>
@@ -1134,7 +1177,8 @@ function TaskListPage({ route, navigation }) {
         }
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
+      navigation.navigate("Error Page", {errorMessage: "Supabase database error."});
     }
   };
 
@@ -1204,7 +1248,8 @@ function TaskListPage({ route, navigation }) {
         setTaskTitleNotes("");
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
+      navigation.navigate("Error Page", {errorMessage: "Supabase database error."});
     }
   };
 
@@ -1219,7 +1264,7 @@ function TaskListPage({ route, navigation }) {
         .eq("taskID", taskID);
 
       if (error) {
-        alert(error.message);
+        console.log(error.message);
       } else {
         // Update the tasks hook by filtering out the task with selected taskID
         // https://stackoverflow.com/questions/54280241/how-to-delete-an-item-using-filter-reactjs
@@ -1227,7 +1272,7 @@ function TaskListPage({ route, navigation }) {
         );
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
     }
   };
 
@@ -1248,7 +1293,7 @@ function TaskListPage({ route, navigation }) {
     try {
       const {error} = await supabase
       if (error) {
-        alert(error.message);
+        console.log(error.message);
       } else {
         // Update the taskSequence column with current sequence when a task is dragged and dropped
         for (let i = 0; i < data.length; i++) {
@@ -1259,7 +1304,7 @@ function TaskListPage({ route, navigation }) {
         }
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
     }
   };  
 
@@ -1477,7 +1522,8 @@ function AllTasks({ navigation }) {
         setTasks(data);
       }}
       } catch (error) {
-      alert(error.message);
+        console.log(error.message);
+        navigation.navigate("Error Page", {errorMessage: "Supabase database error."});
       }
     };
   
@@ -1543,7 +1589,7 @@ function AllTasks({ navigation }) {
           .eq("taskID", editTask.taskID);
 
         if (error) {
-          alert(error.message);
+          console.log(error.message);
         } else {
           // Update a task data with edited task data when both task ID and edit task ID are equal
           // https://stackoverflow.com/questions/68610001/what-may-cause-a-function-to-not-be-recognized-as-a-function-in-react
@@ -1564,7 +1610,7 @@ function AllTasks({ navigation }) {
           .select();
 
         if (error) {
-          alert(error.message);
+          console.log(error.message);
         } else {
           // Update the tasks hook with the newly added task
           setTasks(prevTasks => [...prevTasks, data[0]]);
@@ -1578,7 +1624,7 @@ function AllTasks({ navigation }) {
       setIsImportant(false);
       setEditTask(false);
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
     }
   };
 
@@ -1593,14 +1639,14 @@ function AllTasks({ navigation }) {
         .eq("taskID", taskID);
 
         if (error) {
-          alert(error.message);
+          console.log(error.message);
         } else {
         // Update the tasks hook by filtering out the task with selected taskID
         // https://stackoverflow.com/questions/54280241/how-to-delete-an-item-using-filter-reactjs
         setTasks((prevTasks) => prevTasks.filter(task => task.taskID !== taskID));
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
     }
   };
 
@@ -1674,129 +1720,131 @@ function AllTasks({ navigation }) {
           {/* Add tasks modal */}
           {/* The following code was learnt and implemented from: */}
           {/* https://reactnative.dev/docs/modal */}
+          <View style={styles.taskModalWrapper}>
           <Modal
             animationType="slide"
             transparent={true}
             visible={modalVisible}
             onRequestClose={toggleModal}
           >
-            <View style={styles.taskModalWrapper}>
-              {/* Prevent the keyboard from blocking the view */}
-              {/* https://reactnative.dev/docs/keyboardavoidingview */}
-              <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-              >
-
-                <View style={styles.taskModalBackground}>
-                  {/* Display Edit or Add task mode */}
-                  <Text style={styles.taskListModalTitle}>
-                    {editTask ? "Edit task" : "Add task"}
-                  </Text>
-                  {/* Task title */}
-                  <TextInput
-                    style={styles.taskInput}
-                    value={newTaskName}
-                    onChangeText={setNewTaskName}
-                    placeholder="Task Name"
+            {/* Prevent the keyboard from blocking the view */}
+            {/* https://reactnative.dev/docs/keyboardavoidingview */}
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={styles.taskModalWrapper}
+            >
+              <View style={styles.taskModalBackground}>
+                {/* Display Edit or Add task mode */}
+                <Text style={styles.taskListModalTitle}>
+                  {editTask ? "Edit task" : "Add task"}
+                </Text>
+                {/* Task title */}
+                <TextInput
+                  style={styles.taskInput}
+                  value={newTaskName}
+                  onChangeText={setNewTaskName}
+                  placeholder="Task Name"
+                />
+                <Text style={styles.taskListModalTitle}>Notes</Text>
+                {/* Task notes */}
+                <TextInput
+                  style={styles.taskInput}
+                  value={taskTitleNotes}
+                  onChangeText={setTaskTitleNotes}
+                  placeholder="Notes"
+                />
+                {/* Urgent check box */}
+                {/* https://docs.expo.dev/versions/latest/sdk/checkbox/ */}  
+                <View style={styles.checkBoxModal}>
+                  <Checkbox
+                    value={isUrgent}
+                    onValueChange={setIsUrgent}
+                    color={isUrgent ? "blue" : undefined}
                   />
-                  <Text style={styles.taskListModalTitle}>Notes</Text>
-                  {/* Task notes */}
-                  <TextInput
-                    style={styles.taskInput}
-                    value={taskTitleNotes}
-                    onChangeText={setTaskTitleNotes}
-                    placeholder="Notes"
-                  />
-                  {/* Urgent check box */}
-                  {/* https://docs.expo.dev/versions/latest/sdk/checkbox/ */}  
-                  <View style={styles.checkBoxModal}>
-                    <Checkbox
-                      value={isUrgent}
-                      onValueChange={setIsUrgent}
-                      color={isUrgent ? "blue" : undefined}
-                    />
-                    <Text style={styles.checkboxLabel}>Urgent Task</Text>
-                  </View>
-                  {/* Important check box */}
-                  <View style={styles.checkBoxModal}>
-                    <Checkbox
-                      value={isImportant}
-                      onValueChange={setIsImportant}
-                      color={isImportant ? "blue" : undefined}
-                    />
-                    <Text style={styles.checkboxLabel}>Important Task</Text>
-                  </View>
-                  {/* Add and cancel buttons */}
-                  <View style={styles.taskModalButtonWrapper}>
-                    <TouchableOpacity style={styles.cancelButton} onPress={toggleModal}>
-                      <Text style={styles.signInText}>Cancel</Text>
-                    </TouchableOpacity>
-                    {/* Registration Page button */}
-                    <TouchableOpacity style={styles.addButton} onPress={saveTask}>
-                      <Text style={styles.signInText}>Add</Text>
-                    </TouchableOpacity>
-                  </View>
+                  <Text style={styles.checkboxLabel}>Urgent Task</Text>
                 </View>
-              </KeyboardAvoidingView>
-            </View>
+                {/* Important check box */}
+                <View style={styles.checkBoxModal}>
+                  <Checkbox
+                    value={isImportant}
+                    onValueChange={setIsImportant}
+                    color={isImportant ? "blue" : undefined}
+                  />
+                  <Text style={styles.checkboxLabel}>Important Task</Text>
+                </View>
+                {/* Add and cancel buttons */}
+                <View style={styles.taskModalButtonWrapper}>
+                  <TouchableOpacity style={styles.cancelButton} onPress={toggleModal}>
+                    <Text style={styles.signInText}>Cancel</Text>
+                  </TouchableOpacity>
+                  {/* Registration Page button */}
+                  <TouchableOpacity style={styles.addButton} onPress={saveTask}>
+                    <Text style={styles.signInText}>Add</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </KeyboardAvoidingView>
           </Modal>
+          </View>
+
           {/* Sort modal */}
+          <View style={styles.taskModalWrapper}>
           <Modal
             animationType="slide"
             transparent={true}
             visible={sortModalVisible}
             onRequestClose={toggleSortModal}
           >
-            <View style={styles.taskModalWrapper}>
-              {/* Prevent the keyboard from blocking the view */}
-              {/* https://reactnative.dev/docs/keyboardavoidingview */}
-              <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : "height"}
-              >
-                <View style={styles.taskModalBackground}>
-                  <Text style={styles.taskListModalTitle}>Sort Tasks</Text>
-                  {/* Urgent check box */}
-                  {/* https://docs.expo.dev/versions/latest/sdk/checkbox/ */}  
-                  <View style={styles.checkBoxModal}>
-                    <Checkbox
-                      value={viewUrgent}
-                      onValueChange={setViewUrgent}
-                      color={viewUrgent ? "blue" : undefined}
-                    />
-                    <Text style={styles.checkboxLabel}>Urgent Tasks</Text>
-                  </View>
-                  {/* Important check box */}
-                  <View style={styles.checkBoxModal}>
-                    <Checkbox
-                      value={viewImportant}
-                      onValueChange={setViewImportant}
-                      color={viewImportant ? "blue" : undefined}
-                    />
-                    <Text style={styles.checkboxLabel}>Important Tasks</Text>
-                  </View>
-                  {/* Urgent And Important check box */}
-                  <View style={styles.checkBoxModal}>
-                    <Checkbox
-                      value={viewUrgentImportant}
-                      onValueChange={setViewUrgentImportant}
-                      color={viewUrgentImportant ? "blue" : undefined}
-                    />
-                    <Text style={styles.checkboxLabel}>Urgent And Important Tasks</Text>
-                  </View>
-                  {/* Add and cancel buttons */}
-                  <View style={styles.taskModalButtonWrapper}>
-                    <TouchableOpacity style={styles.cancelButton} onPress={toggleSortModal}>
-                      <Text style={styles.signInText}>Cancel</Text>
-                    </TouchableOpacity>
-                    {/* Registration Page button */}
-                    <TouchableOpacity style={styles.addButton} onPress={getAllTasks}>
-                      <Text style={styles.signInText}>Sort</Text>
-                    </TouchableOpacity>
-                  </View>
+            {/* Prevent the keyboard from blocking the view */}
+            {/* https://reactnative.dev/docs/keyboardavoidingview */}
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={styles.taskModalWrapper}
+            >
+              <View style={styles.taskModalBackground}>
+                <Text style={styles.taskListModalTitle}>Sort Tasks</Text>
+                {/* Urgent check box */}
+                {/* https://docs.expo.dev/versions/latest/sdk/checkbox/ */}  
+                <View style={styles.checkBoxModal}>
+                  <Checkbox
+                    value={viewUrgent}
+                    onValueChange={setViewUrgent}
+                    color={viewUrgent ? "blue" : undefined}
+                  />
+                  <Text style={styles.checkboxLabel}>Urgent Tasks</Text>
                 </View>
-              </KeyboardAvoidingView>
-            </View>
+                {/* Important check box */}
+                <View style={styles.checkBoxModal}>
+                  <Checkbox
+                    value={viewImportant}
+                    onValueChange={setViewImportant}
+                    color={viewImportant ? "blue" : undefined}
+                  />
+                  <Text style={styles.checkboxLabel}>Important Tasks</Text>
+                </View>
+                {/* Urgent And Important check box */}
+                <View style={styles.checkBoxModal}>
+                  <Checkbox
+                    value={viewUrgentImportant}
+                    onValueChange={setViewUrgentImportant}
+                    color={viewUrgentImportant ? "blue" : undefined}
+                  />
+                  <Text style={styles.checkboxLabel}>Urgent And Important Tasks</Text>
+                </View>
+                {/* Add and cancel buttons */}
+                <View style={styles.taskModalButtonWrapper}>
+                  <TouchableOpacity style={styles.cancelButton} onPress={toggleSortModal}>
+                    <Text style={styles.signInText}>Cancel</Text>
+                  </TouchableOpacity>
+                  {/* Registration Page button */}
+                  <TouchableOpacity style={styles.addButton} onPress={getAllTasks}>
+                    <Text style={styles.signInText}>Sort</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </KeyboardAvoidingView>
           </Modal>
+          </View>
         </View>
       </GestureHandlerRootView>
       <TouchableOpacity
@@ -1870,7 +1918,8 @@ function MyDay({ navigation }) {
           // console.log(threeForecastData.list[0].weather[0].id);
           // console.log(threeForecastData.list[1].weather[0].id);
         } catch (error) {
-          alert("Could not fetch the weather");
+          console.log("Could not fetch the weather");
+          navigation.navigate("Error Page", {errorMessage: "Could not fetch the weather"});
         }
       }
     })();
@@ -1898,7 +1947,8 @@ function MyDay({ navigation }) {
           setMyDayTaskTitle(data); 
         }
       } catch (error) {
-        alert(error.message);
+        console.log(error.message);
+        navigation.navigate("Error Page", {errorMessage: "Supabase database error."});
       }
     };
     getProjectsSupabase();
@@ -1933,7 +1983,7 @@ function MyDay({ navigation }) {
         setNewMyDayTaskTitle(""); 
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
     }
   };
 
@@ -1955,7 +2005,7 @@ function MyDay({ navigation }) {
         setMyDayTaskTitle((prevTasks) => prevTasks.filter(task => task.myDayTaskId !== myDayTaskId));
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
     }
   };
 
@@ -1976,7 +2026,7 @@ function MyDay({ navigation }) {
     try {
       const {error} = await supabase
       if (error) {
-        alert(error.message);
+        console.log(error.message);
       } else {
         // Update the mydaySequence column with current sequence when a task is dragged and dropped
         for (let i = 0; i < data.length; i++) {
@@ -1987,7 +2037,7 @@ function MyDay({ navigation }) {
         }
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
     }
   };  
 
@@ -2027,7 +2077,7 @@ function MyDay({ navigation }) {
       return require("./assets/myDayWallpaper/skc.jpeg");
     }
     // Clouds
-    else if ((weatherID) => 801 && weatherID <= 804) {
+    else if (weatherID >= 801 && weatherID <= 804) {
       return require("./assets/myDayWallpaper/cloud.jpg");
     }
   };
@@ -2189,6 +2239,7 @@ function MyDay({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safeAreaView}>
+    <View style={styles.container}>
     {/* Ensure text input not blocked */} 
     {/* https://reactnative.dev/docs/keyboardavoidingview */} 
       <KeyboardAvoidingView
@@ -2274,6 +2325,7 @@ function MyDay({ navigation }) {
       </ImageBackground>
       </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
+      </View>
       <BottomNavigation navigation={navigation} />
     </SafeAreaView>
   );
@@ -2291,6 +2343,17 @@ export default function App() {
   // Store playback state to avoid multiple playback at once
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // The following code was obtained from:
+  // https://docs.expo.dev/versions/latest/sdk/netinfo/
+  const unsubscribe = addEventListener(state => {
+    console.log("Connection type", state.type);
+    console.log("Is connected?", state.isConnected);
+    if (!state.isConnected) {
+      navigation.navigate("Error Page", {errorMessage: "Check your internet connection."});
+    }
+  });
+  unsubscribe();
+  
   // Fetch user setting from Supabase for current user
   // https://supabase.com/docs/reference/javascript/select
   const getSettingSupabase = async () => {
@@ -2312,7 +2375,7 @@ export default function App() {
         setAudio(data[0].audio);
       }
     } catch (error) {
-      alert(error.message);
+      console.log(error.message);
     }
   };
   useEffect(() => {
@@ -2324,7 +2387,7 @@ export default function App() {
     styles = lightStyle;
   } else if (style == ("darkStyle")) {
     styles = darkStyle;
-  };
+  }
 
   // The following playSound and useEffect code was obtained from:
   // https://docs.expo.dev/versions/latest/sdk/audio-av/
@@ -2332,7 +2395,7 @@ export default function App() {
     const {sound} = await Audio.Sound.createAsync(require('./assets/audio/work.mp3'));
     setSound(sound);
     await sound.playAsync();
-  };
+  }
 
   useEffect(() => {
     return sound
@@ -2350,7 +2413,7 @@ export default function App() {
       playSound();
       setIsPlaying(true); 
     }
-  };
+  }
   
   return (
     <NavigationContainer>
@@ -2364,6 +2427,7 @@ export default function App() {
         <Stack.Screen name="Register" component={RegistrationPage} />
         <Stack.Screen name="Pomodoro" component={PomodoroTimer} />
         <Stack.Screen name="Setting" component={Setting} />
+        <Stack.Screen name="Error Page" component={ErrorPage} />
       </Stack.Navigator>
     </NavigationContainer>
   );

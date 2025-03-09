@@ -212,6 +212,9 @@ const lightStyle = StyleSheet.create({
       height: 280,
       alignItems: "center",
       alignSelf: "center",
+      borderWidth: 1,
+      borderColor: "#ccc",
+      borderRadius: 10,
     },
     // Project page cancel button
     cancelButton: {
@@ -284,13 +287,20 @@ const lightStyle = StyleSheet.create({
     },
     // Position the tasks page modal at the bottom
     taskModalWrapper: {
-      flex: 1,
       justifyContent: "flex-end",
+      width: "100%",
+      flex: 1,
+      alignItems: "center",
     },
     // Tasks modal background colour
     taskModalBackground: {
       backgroundColor: "#fff",
       padding: 20,
+      borderWidth: 1,
+      borderColor: "#ccc",
+      borderRadius: 10,
+      width: "100%", 
+      minWidth: 400,
     },
     // Title on tasks page modal - Add task and notes
     taskListModalTitle: {
@@ -359,6 +369,8 @@ const lightStyle = StyleSheet.create({
     },
     // Make the text input and + button appear side by side 
     myDayTaskInputWrapper: {
+      position: "absolute",
+      bottom: 0,
       flexDirection: "row",
       justifyContent: "space-around",
       marginBottom: 40,
@@ -505,7 +517,7 @@ const lightStyle = StyleSheet.create({
     // Information modal on welcome page
      infoModal: {
       backgroundColor: "#f1f1f1",
-      opacity: 0.9,
+      opacity: 0.93,
       justifyContent: "center", 
       alignItems: "center",
       alignSelf: "center",
@@ -625,7 +637,6 @@ const lightStyle = StyleSheet.create({
     },
     // Setting page sign out button
     signOutButton: {
-      backgroundColor: "#4d4d4d",
       padding: 15,
       width: "80%",
       backgroundColor: "blue",
@@ -635,6 +646,35 @@ const lightStyle = StyleSheet.create({
       borderColor: "#ccc",
       borderWidth: 2,
       borderRadius: 10,
+    },
+    // Text inputs on Sign In and Register page
+    emailInput: {
+      height: 45,
+      backgroundColor: "white",
+      borderWidth: 1,
+      borderColor: "#ccc",
+      paddingHorizontal: 10,
+      marginBottom: 20,
+      marginHorizontal: 20,
+      marginTop: 10,
+    },
+    // Error page
+    errorMessage: {
+      alignContent: "center",
+      justifyContent: 'center',
+      paddingTop: 20,
+    },
+    // Error page text
+    errorMessageText: {
+      textAlign:"center",
+      marginTop: 5,
+      fontSize: 14,
+    },
+    // Project deadline on add project modal
+    dateTimePickerText: {
+      fontSize: 15,
+      fontWeight: "bold",
+      color: "black",
     }
   });
   

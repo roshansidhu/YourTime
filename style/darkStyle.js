@@ -194,6 +194,7 @@ const darkStyle = StyleSheet.create({
     topLeftButton: {
       textAlign: "left",
       marginLeft: 10,
+      color: "white",
     },
     // Vertical margin above and below rows of tasks/projects
     taskRowMargin: {
@@ -212,7 +213,7 @@ const darkStyle = StyleSheet.create({
     },
     // Project page modal 
     projectModal: {
-      backgroundColor: "white",
+      backgroundColor: "#888",
       width: "90%", 
       height: 280,
       alignItems: "center",
@@ -294,7 +295,7 @@ const darkStyle = StyleSheet.create({
     },
     // Tasks modal background colour
     taskModalBackground: {
-      backgroundColor: "#fff",
+      backgroundColor: "#888",
       padding: 20,
     },
     // Title on tasks page modal - Add task and notes
@@ -630,7 +631,6 @@ const darkStyle = StyleSheet.create({
     },
     // Setting page sign out button
     signOutButton: {
-      backgroundColor: "#4d4d4d",
       padding: 15,
       width: "80%",
       backgroundColor: "blue",
@@ -640,6 +640,36 @@ const darkStyle = StyleSheet.create({
       borderColor: "#ccc",
       borderWidth: 2,
       borderRadius: 10,
+    },
+    // Text inputs on Sign In and Register page
+    emailInput: {
+      height: 45,
+      backgroundColor: "white",
+      borderWidth: 1,
+      borderColor: "#ccc",
+      paddingHorizontal: 10,
+      marginBottom: 20,
+      marginHorizontal: 20,
+      marginTop: 10,
+    },
+    // Error page
+    errorMessage: {
+      alignContent: "center",
+      justifyContent: 'center',
+      paddingTop: 20,
+    },
+    // Error page text
+    errorMessageText: {
+      textAlign:"center",
+      marginTop: 5,
+      fontSize: 14,
+      color: "white",
+    },
+    // Project deadline on add project modal
+    dateTimePickerText: {
+      fontSize: 15,
+      fontWeight: "bold",
+      color: "white",
     }
   });
   
