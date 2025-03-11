@@ -1,6 +1,6 @@
 import React from "react";
 import { render, fireEvent, act } from "@testing-library/react-native";
-import { PomodoroTimer, BottomNavigation, WelcomePage, RegistrationPage, SignInPage } from "../App.js";
+import { PomodoroTimer, BottomNavigation, WelcomePage, RegistrationPage, SignInPage, Setting, AllTasks, AllProjectsPage, MyDay } from "../AppTest.js";
 import { createClient } from "@supabase/supabase-js";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -18,16 +18,53 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
+// Mock gesture handler required for the draggable flatlist
+// The following code was obtained from:
+// https://github.com/software-mansion/react-native-gesture-handler/issues/344
+jest.mock("react-native-gesture-handler", () => ({
+  GestureHandlerRootView: require("react-native/Libraries/Components/View/View"),
+}));
+
+// Mock flatlist instead of a draggable flatlist used
+// The following code was learnt from:
+// https://github.com/facebook/react-native/issues/27724
+jest.mock("react-native-draggable-flatlist", () => {
+  const {FlatList} = require("react-native");
+  function MockedFlatList(props) {
+    return (mockedProps) => <FlatList {...mockedProps}></FlatList>;
+  }
+  return MockedFlatList;
+});
+
+// Mock async storage
+// The following code was obtained from:
+// https://react-native-async-storage.github.io/async-storage/docs/advanced/jest/
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
+// Mock expo location for My Day Page - not fully implemented
+// The following code was obtained from:
+// https://stackoverflow.com/questions/56441730/jest-mocking-permissions-of-expo-typeerror-cannot-read-property-askasync-of-u
+jest.mock('expo', ()=>({
+  Permissions: {
+     askAsync: jest.fn()
+  }
+}))
+
 jest.useFakeTimers();
+
+// Mock navigation
+// The following code was obtained from:
 // https://stackoverflow.com/questions/72237113/mock-addlistener-from-navigation-in-unit-test
 const mockNavigation = {
   navigate: jest.fn(),
-  addListener: jest.fn((event, callback) => callback()),
+  addListener: jest.fn((event, callback) => callback())
 };
 
 // Test the Pomodoro timer page
 describe("Pomodoro", () => {
-  it("Pomodoro timer page loads correctly.", () => {
+  it("Pomodoro timer page load correctly.", () => {
     const {getByTestId, getByText} = render(<PomodoroTimer navigation={mockNavigation}/>);
     // Check that the page title is displayed    
     expect(getByText("Pomodoro Timer")).toBeTruthy();
@@ -197,7 +234,7 @@ describe("Pomodoro", () => {
 
 // Test the bottom nav bar for correct image and text
 describe("BottomNavigation", () => {
-  it("Bottom nav bar loads correctly.", () => {
+  it("Bottom navigation bar load correctly.", () => {
     const {getByTestId, getByText} = render(<BottomNavigation navigation={mockNavigation}/>);
     
     // All projects
@@ -223,38 +260,51 @@ describe("BottomNavigation", () => {
   });
 });
 
-// Test the bottom nav bar for correct image and text
+// Test the Welcome page
 // The test works only when changing const {data} = await supabase.auth.getUser() 
 // if (data.aud) on Welcome Page
-
-// describe("WelcomePage", () => {
-//   it("WelcomePage page logo loads correctly.", () => {
-//     const {getByTestId, getByText} = render(<WelcomePage navigation={mockNavigation}/>);
+describe("WelcomePage", () => {
+  it("WelcomePage page logo and button load correctly.", () => {
+    const {getByTestId, getByText} = render(<WelcomePage navigation={mockNavigation}/>);
         
-//     // YourTime logo
-//     const ytLogo = require("../assets/image/logo.png");
-//     expect(getByTestId("ytLogo").props.source).toEqual(ytLogo);
+    // Check the YourTime logo
+    const ytLogo = require("../assets/image/logo.png");
+    expect(getByTestId("ytLogo").props.source).toEqual(ytLogo);
 
-//     // Sign in and Register button
-//     expect(getByText("Sign In")).toBeTruthy();
-//     expect(getByText("Register")).toBeTruthy();
-//     expect(getByText("Welcome back!")).toBeTruthy();
-//     expect(getByText("Click here if you're new!")).toBeTruthy();
+    // Check the Sign in and Register button
+    expect(getByText("Sign In")).toBeTruthy();
+    expect(getByText("Register")).toBeTruthy();
+    expect(getByText("Welcome back!")).toBeTruthy();
+    expect(getByText("Click here if you're new!")).toBeTruthy();
+  });
 
-//     // Check the info modal button and display
-//     const infoButton = getByText("i");
-//     fireEvent.press(infoButton);
-//     // Check the info modal when info button is pressed
-//     expect(getByText("Welcome To YourTime!")).toBeTruthy();
-//     expect(getByText("Create and manage project folders.")).toBeTruthy();
-//     expect(getByText("Note tasks for today and see the weather forecast.")).toBeTruthy();
-//     expect(getByText("View all your tasks here.")).toBeTruthy();
-//     expect(getByText("Manage your time better using this timer.")).toBeTruthy();
-//   });
-// });
- 
+  it("WelcomePage page info modal load correctly.", () => {
+    const {getByTestId, getByText} = render(<WelcomePage navigation={mockNavigation}/>);
+    
+    // Check the info modal button and display
+    const infoButton = getByText("i");
+    fireEvent.press(infoButton);
+    // Check the info modal when info button is pressed
+    expect(getByText("Welcome To YourTime!")).toBeTruthy();
+    expect(getByText("All Projects")).toBeTruthy();
+    expect(getByText("Create and manage projects.")).toBeTruthy();
+    expect(getByText("Track project deadlines using the calendar.")).toBeTruthy();
+    expect(getByText("My Day")).toBeTruthy();
+    expect(getByText("Note tasks for today and see the weather forecast.")).toBeTruthy();
+    expect(getByText("All Tasks")).toBeTruthy();
+    expect(getByText("View all your tasks here.")).toBeTruthy();
+    expect(getByText("YourTime can automatically sort tasks for you.")).toBeTruthy();
+    expect(getByText("Pomodoro Timer")).toBeTruthy();
+    expect(getByText("Manage your time better when performing tasks.")).toBeTruthy();
+    expect(getByText("Settings")).toBeTruthy();
+    expect(getByText("Select dark or light mode.")).toBeTruthy();
+    expect(getByText("Turn on or off background music.")).toBeTruthy();
+  });
+});
+
+// Test the Register page
 describe("RegistrationPage", () => {
-  it("Registration page loads correctly.", () => {
+  it("Registration page load correctly.", () => {
     const {getByTestId, getByText} = render(<RegistrationPage navigation={mockNavigation}/>);
     
     // Check the email text input
@@ -275,8 +325,9 @@ describe("RegistrationPage", () => {
   });
 });
 
+// Test the Sign In page
 describe("SignInPage", () => {
-  it("Sign In page loads correctly.", () => {
+  it("Sign In page load correctly.", () => {
     const {getByTestId, getByText, getAllByText} = render(<SignInPage navigation={mockNavigation}/>);
     // Check the page title and sign in button - same text on both
     // https://testing-library.com/docs/queries/about/
@@ -298,8 +349,163 @@ describe("SignInPage", () => {
     expect(getByText("Sign Up here if you haven't!")).toBeTruthy();
 
     // https://stackoverflow.com/questions/61781274/how-to-mock-usenavigation-hook-in-react-navigation-5-0-for-jest-test
+    // const signInButton = getByTestId("signInButton");
+    // fireEvent.press(signInButton);
+
+    // https://stackoverflow.com/questions/61781274/how-to-mock-usenavigation-hook-in-react-navigation-5-0-for-jest-test
     const signUpButton = getByTestId("signUpButton");
     fireEvent.press(signUpButton);
     expect(mockNavigation.navigate).toHaveBeenCalledWith("Register");
+  });
+});
+
+// Test the Setting page
+describe("SettingPage", () => {
+  it("Setting page load correctly.", () => {
+    const {getByTestId, getByText, getAllByText} = render(<Setting navigation={mockNavigation}/>);
+
+    // Check the page title
+    expect(getByText("User Setting")).toBeTruthy();
+
+    // Check the dark mode button
+    expect(getByText("Set Dark Mode")).toBeTruthy();
+    const darkButton = getByTestId("darkModeButton");
+    fireEvent.press(darkButton);
+    
+    // Check the light mode button
+    expect(getByText("Set Light Mode")).toBeTruthy();
+    const lightButton = getByTestId("darkModeButton");
+    fireEvent.press(lightButton);
+
+    // Check the off music button
+    expect(getByText("Off Music")).toBeTruthy();
+    const offButton = getByText("Off Music");
+    fireEvent.press(offButton);
+
+    // Check the on music button
+    expect(getByText("On Music")).toBeTruthy();
+    const onButton = getByText("On Music");
+    fireEvent.press(onButton);
+
+    // Check the sign out button
+    expect(getByText("Sign Out")).toBeTruthy();
+  });
+});
+
+// Test the All Projects page
+describe("AllProjects", () => {
+  it("App Projects page title load correctly.", () => {
+    const {getByTestId, getByText, getAllByText} = render(<AllProjectsPage navigation={mockNavigation}/>);
+
+    // Check the page title
+    expect(getByText("Project Folders")).toBeTruthy();
+  });
+
+  it("App Projects page add a project modal load correctly.", () => {
+    const {getByTestId, getByText, getAllByText} = render(<AllProjectsPage navigation={mockNavigation}/>);
+
+    // Check the add project button
+    const addProjectButton = getByText("Add a project +");
+    fireEvent.press(addProjectButton);
+
+    // Check the add project modal when add a project button pressed
+    expect(getByText("Add a Project")).toBeTruthy();
+    expect(getByText("Project Deadline")).toBeTruthy();
+
+    // Check the add and cancel button on add project modal
+    expect(getByText("Add")).toBeTruthy();
+    expect(getByText("Cancel")).toBeTruthy();
+
+    // Test new project text input on modal
+    const newProjectName = getByTestId("newProjectTest");
+    fireEvent.changeText(newProjectName, "new project test");
+    expect(newProjectName).toHaveDisplayValue("new project test");
+
+    // Add project button
+    const addButton = getByText("Add");
+
+    // Cancel button
+    const cancelButton = getByText("Cancel");
+    fireEvent.press(cancelButton);
+  });
+});
+
+// Test the All Tasks page
+describe("AllTasks", () => {
+  it("All Tasks page project title load correctly.", () => {
+    const {getByTestId, getByText, getAllByText} = render(<AllTasks navigation={mockNavigation}/>);
+
+    // Check the page title
+    expect(getByText("All Tasks")).toBeTruthy();
+  });
+
+  it("All Tasks page Add Task Modal load correctly.", () => {
+    const {getByTestId, getByText, getAllByText} = render(<AllTasks navigation={mockNavigation}/>);
+    // Check the sort button and press to display the sort modal
+    const sortButton = getByText("Sort");
+    fireEvent.press(sortButton);
+
+    // Check the sort modal title
+    expect(getByText("Sort Tasks")).toBeTruthy();
+
+    // Check the sort modal check box title
+    expect(getByText("Urgent Tasks")).toBeTruthy();
+    expect(getByText("Important Tasks")).toBeTruthy();
+    expect(getByText("Urgent And Important Tasks")).toBeTruthy();
+
+    // Check the important checkbox
+    // https://github.com/react-native-checkbox/react-native-checkbox/issues/78
+    const filterImportant = getByTestId("filterImportant");
+    fireEvent(filterImportant, 'onValueChange', true);
+    fireEvent(filterImportant, 'onValueChange', false);
+
+    // Check the urgent checkbox
+    // https://github.com/react-native-checkbox/react-native-checkbox/issues/78
+    const filterUrgent = getByTestId("filterUrgent");
+    fireEvent(filterUrgent, 'onValueChange', true);
+    fireEvent(filterUrgent, 'onValueChange', false);
+
+    // Check the urgent and important checkbox
+    // https://github.com/react-native-checkbox/react-native-checkbox/issues/78
+    const filterUrgentImportant = getByTestId("filterUrgentImportant");
+    fireEvent(filterUrgentImportant, 'onValueChange', true);
+    fireEvent(filterUrgentImportant, 'onValueChange', false);
+
+    // Press cancel button to close modal
+    const cancelButton = getByText("Cancel");
+    fireEvent.press(cancelButton);
+  });
+
+  it("All Tasks page sort modal load correctly.", () => {
+    const {getByTestId, getByText, getAllByText} = render(<AllTasks navigation={mockNavigation}/>);
+    // Check the add a task button. Displays the add task modal
+    const addTaskButton = getByText("Add a Task +");
+    fireEvent.press(addTaskButton);
+
+    // Test the add task text input
+    const addTaskInput = getByTestId("addTaskInput");
+    fireEvent.changeText(addTaskInput, "Testing Input");
+    expect(addTaskInput).toHaveDisplayValue("Testing Input");   
+
+    // Test the add task notes text input
+    const addNotesInput = getByTestId("addNotesInput");
+    fireEvent.changeText(addNotesInput, "Testing Notes Input");
+    expect(addNotesInput).toHaveDisplayValue("Testing Notes Input");   
+
+    // Check the urgent checkbox
+    // https://github.com/react-native-checkbox/react-native-checkbox/issues/78
+    const isImportantCheckbox = getByTestId("isUrgent");
+    fireEvent(isImportantCheckbox, 'onValueChange', true);
+    fireEvent(isImportantCheckbox, 'onValueChange', false);
+
+    // Check the important checkbox
+    // https://github.com/react-native-checkbox/react-native-checkbox/issues/78
+    const isUrgentCheckbox = getByTestId("isImportant");
+    fireEvent(isUrgentCheckbox, 'onValueChange', true);
+    fireEvent(isUrgentCheckbox, 'onValueChange', false);
+
+    // Cancel button - press to close modal
+    const cancelTaskButton = getByText("Cancel");
+    fireEvent.press(cancelTaskButton);
   });
 });

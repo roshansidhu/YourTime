@@ -25,6 +25,7 @@
     "expo": "~52.0.11",
     "expo-audio": "~0.3.5",
     "expo-av": "~15.0.2",
+    "expo-calendar": "~14.0.6",
     "expo-checkbox": "~4.0.1",
     "expo-location": "~18.0.3",
     "expo-modules": "^0.0.0",
